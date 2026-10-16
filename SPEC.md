@@ -12,9 +12,9 @@ The primary goal is to make practical business intelligence accessible to small 
 
 ## 2. Problem Statement
 
-Many small business owners and early-stage entrepreneurs in Pakistan manage their businesses using paper registers, spreadsheets, messaging applications, or disconnected digital tools.
+Many people are starting small businesses and entrepreneurial ventures, but they cannot afford to hire professional managers, accountants, or inventory experts. Some owners also lack the knowledge or technical skills needed to analyze sales, manage inventory, verify supplier prices, calculate profits, set suitable prices, and make data-driven decisions.
 
-Hiring professional managers, accountants, and inventory experts can be expensive. Owners may also lack the technical knowledge required to analyze sales, manage stock, compare supplier prices, calculate profits, set suitable prices, and make data-driven decisions.
+Many small business owners and early-stage entrepreneurs in Pakistan manage their businesses using paper registers, spreadsheets, messaging applications, or disconnected digital tools.
 
 Invoices and business reports can be difficult to organize and understand, particularly for users unfamiliar with digital tools or English-language business software.
 
