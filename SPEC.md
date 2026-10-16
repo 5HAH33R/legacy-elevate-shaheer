@@ -594,54 +594,7 @@ All reused components will be evaluated against Elevate's architecture, privacy 
 
 Specific marketplace components and libraries will be documented after they have been selected. The team will not claim a component has been integrated until the integration is completed and tested.
 
-### 14.4 Proposed Hackathon Timeline
-
-**19 October — Foundation**
-
-- Set up the application and repository.
-- Configure the required environment.
-- Establish authentication, business workspace structure, and initial UI.
-
-**20 October — Business Records**
-
-- Implement product and inventory management.
-- Implement sales, expenses, suppliers, and purchase records.
-- Add validation and basic record operations.
-
-**21 October — Intelligence and Integration**
-
-- Implement dashboard calculations and summaries.
-- Integrate invoice processing and the AI assistant as planned.
-- Connect the primary user journey across the implemented features.
-
-**22 October — Testing and Deployment**
-
-- Test authentication and cross-business access restrictions.
-- Verify calculations and inventory updates.
-- Test AI responses and missing-data handling.
-- Fix critical issues, deploy the application, and prepare the demo.
-
-This is the team's proposed execution plan. Actual task allocation and delivery depend on the team's available members, progress, and integration requirements.
-
-## 15. Acceptance Criteria
-
-The MVP will be evaluated against the following expected behaviours:
-
-- Owners can authenticate and access their authorized business workspace.
-- Business records can be created, reviewed, updated, and retrieved.
-- Inventory quantities and low-stock warnings behave according to defined rules.
-- Sales, expenses, and profit-related values use application calculations.
-- Invoice extraction results can be reviewed and corrected before confirmation.
-- Supplier comparisons identify the available sources and limitations.
-- The AI assistant responds using authorized business data and does not fabricate financial totals.
-- Insufficient information is communicated clearly.
-- Sensitive business records are protected by authentication and authorization.
-- The primary user journey can be demonstrated end to end.
-- The deployed application handles essential errors without exposing secrets or private data.
-
-Acceptance criteria will be tested against the functionality actually implemented in the MVP.
-
-## 16. Product Principle
+## 15. Product Principle
 
 Make practical business intelligence accessible and affordable to small business owners in Pakistan through Elevate.
 
