@@ -21,6 +21,14 @@ vi.mock("next/headers", () => ({
   }),
 }));
 
+// getSessionUser() calls connection() (next/server), which needs a Next
+// request scope. Tests invoke handlers directly, so stub it to a no-op;
+// NextResponse and friends stay real.
+vi.mock("next/server", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("next/server")>();
+  return { ...actual, connection: async () => {} };
+});
+
 function request(method: string, path: string, body?: unknown) {
   return new Request(`http://localhost${path}`, {
     method,

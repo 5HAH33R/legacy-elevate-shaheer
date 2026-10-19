@@ -13,7 +13,7 @@ describe("calcItemsTotal", () => {
         { unitPrice: 125050, quantity: 2 }, // Rs 1,250.50 × 2
         { unitPrice: 9999, quantity: 3 }, // Rs 99.99 × 3
       ]),
-    ).toBe(253107); // exact: no floating-point drift
+    ).toBe(280097); // exact: no floating-point drift
   });
 
   it("returns 0 for an empty sale", () => {

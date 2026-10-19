@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import { ApiError } from "./errors";
 import {
   SESSION_COOKIE_NAME,
@@ -13,6 +14,11 @@ import {
  * comes only from the httpOnly session cookie — never from a client-sent UID.
  */
 export async function getSessionUser(): Promise<SessionUser | null> {
+  // With cacheComponents + partialPrefetching, cookies() reads happen during
+  // the App Shell prerender and Firebase verification reads the current time
+  // (an unstable value). connection() opts out of prerendering so the session
+  // is verified fresh on every request instead.
+  await connection();
   const store = await cookies();
   return verifySessionUser(store.get(SESSION_COOKIE_NAME)?.value);
 }

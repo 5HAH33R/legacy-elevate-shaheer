@@ -8,8 +8,6 @@ import {
   listProductsForBusiness,
 } from "@/server/products";
 
-export const runtime = "nodejs";
-
 type RouteContext = { params: Promise<{ businessId: string }> };
 
 /** List products. Ownership is verified first; others get 404. */

@@ -322,6 +322,7 @@ Deployment commands will be added when hosting is chosen.
 ### Stack notes
 
 - This is Next.js 16 with `cacheComponents` and `partialPrefetching` enabled. Data fetching is dynamic by default. Read `node_modules/next/dist/docs/` before using caching, routing or data APIs (see the block at the end of this file).
+- Do not add export const runtime = ... (or other route segment configs such as dynamic or revalidate) to any route or page. With cacheComponents enabled the build fails on them, and routes already run on Node.js.
 - Money helpers live in `src/lib/money.ts`. Use them for all amounts.
 - `src/lib/firebase/admin.ts` bypasses security rules. Only call it after verifying identity and ownership.
 

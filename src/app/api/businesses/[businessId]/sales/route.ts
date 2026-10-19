@@ -8,8 +8,6 @@ import {
   recordSaleForBusiness,
 } from "@/server/sales";
 
-export const runtime = "nodejs";
-
 type RouteContext = { params: Promise<{ businessId: string }> };
 
 /** List confirmed sales for the owner's business. */

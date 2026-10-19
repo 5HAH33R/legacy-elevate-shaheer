@@ -12,8 +12,6 @@ import {
 } from "@/server/session";
 import { ensureUserRecord } from "@/server/users";
 
-export const runtime = "nodejs";
-
 const bodySchema = z.object({ idToken: z.string().min(1) });
 
 /**

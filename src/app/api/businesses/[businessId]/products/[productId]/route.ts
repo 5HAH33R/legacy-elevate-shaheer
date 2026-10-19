@@ -4,8 +4,6 @@ import { requireBusinessOwner } from "@/server/businesses";
 import { errorResponse } from "@/server/errors";
 import { updateProductForBusiness, updateProductSchema } from "@/server/products";
 
-export const runtime = "nodejs";
-
 type RouteContext = {
   params: Promise<{ businessId: string; productId: string }>;
 };

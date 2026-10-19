@@ -7,8 +7,6 @@ import {
 } from "@/server/businesses";
 import { errorResponse } from "@/server/errors";
 
-export const runtime = "nodejs";
-
 /** List the signed-in owner's businesses. */
 export async function GET() {
   try {

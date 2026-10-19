@@ -7,8 +7,6 @@ import {
 } from "@/server/businesses";
 import { errorResponse } from "@/server/errors";
 
-export const runtime = "nodejs";
-
 type RouteContext = { params: Promise<{ businessId: string }> };
 
 /** Read one business. Only its owner can; everyone else gets 404. */

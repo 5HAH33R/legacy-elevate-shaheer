@@ -8,8 +8,6 @@ import {
   listExpensesForBusiness,
 } from "@/server/expenses";
 
-export const runtime = "nodejs";
-
 type RouteContext = { params: Promise<{ businessId: string }> };
 
 /** List recorded expenses for the owner's business. */

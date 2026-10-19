@@ -4,8 +4,6 @@ import { requireBusinessOwner } from "@/server/businesses";
 import { errorResponse } from "@/server/errors";
 import { deleteExpenseForBusiness } from "@/server/expenses";
 
-export const runtime = "nodejs";
-
 type RouteContext = {
   params: Promise<{ businessId: string; expenseId: string }>;
 };
