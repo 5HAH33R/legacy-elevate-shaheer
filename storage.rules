@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// Deny by default. Invoice files must stay private (SPEC.md 5.1, 9.11).
+// Uploads and downloads go through server-side checks until a phase adds
+// narrow, tested owner-only rules.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
