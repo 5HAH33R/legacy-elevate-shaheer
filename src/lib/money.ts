@@ -63,6 +63,16 @@ export function sumMoney(amounts: readonly MinorUnits[]): MinorUnits {
   return total;
 }
 
+/** Formats minor units as a plain decimal string for form inputs, e.g. 125050 -> "1250.50". */
+export function minorToDecimalString(amount: MinorUnits): string {
+  assertMinorUnits(amount);
+  const negative = amount < 0;
+  const absolute = Math.abs(amount);
+  const whole = Math.trunc(absolute / MINOR_UNITS_PER_MAJOR);
+  const fraction = String(absolute % MINOR_UNITS_PER_MAJOR).padStart(2, "0");
+  return `${negative ? "-" : ""}${whole}.${fraction}`;
+}
+
 /** Formats minor units for display, e.g. 125050 -> "Rs 1,250.50". */
 export function formatMoney(
   amount: MinorUnits,

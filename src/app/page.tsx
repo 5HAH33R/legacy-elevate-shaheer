@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
@@ -20,6 +21,21 @@ export default function Home() {
         </p>
       </section>
 
+      <section className="flex flex-wrap gap-3">
+        <Link
+          href="/sign-up"
+          className="inline-flex items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:brightness-95"
+        >
+          Create an account
+        </Link>
+        <Link
+          href="/sign-in"
+          className="inline-flex items-center justify-center rounded-lg border border-border bg-surface px-5 py-2.5 text-sm font-semibold text-foreground hover:bg-surface-muted"
+        >
+          Sign in
+        </Link>
+      </section>
+
       <section
         aria-labelledby="status-heading"
         className="rounded-2xl border border-border bg-surface p-6"
@@ -28,8 +44,8 @@ export default function Home() {
           Project status
         </h2>
         <p className="mt-2 text-muted">
-          Foundation setup only. Sign-in, business records and the AI assistant
-          are not built yet.
+          Phase 2: owner sign-up, sign-in and a private business workspace are
+          live. Business records and the AI assistant come in later phases.
         </p>
       </section>
     </main>
