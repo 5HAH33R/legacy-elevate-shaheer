@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+/*
+ * Elevate theme tokens.
+ * Brand colors come from SPEC.md section 12. Define every color here once and
+ * use it through Tailwind utilities (bg-surface, text-muted, ...). Do not put
+ * raw hex values in components.
+ *
+ * Theme selection: <html data-theme="light|dark"> is set before first paint by
+ * the inline script in layout.tsx. Without it, the OS preference applies.
+ */
+
+:root {
+  /* Brand */
+  --brand-lime: #c6ff00;
+  --brand-carbon: #080a08;
+  --brand-graphite: #171b16;
+  --brand-soft-white: #f6f8f4;
+
+  /* Light theme (default) */
+  --background: var(--brand-soft-white);
+  --surface: #ffffff;
+  --surface-muted: #eef1ea;
+  --foreground: var(--brand-graphite);
+  --muted: #596157;
+  --border: #dde2d8;
+  --primary: var(--brand-lime);
+  --primary-foreground: var(--brand-graphite);
+  --focus-ring: #4d6b00;
+
+  /* Status: always pair with text or an icon, never color alone. */
+  --success: #15803d;
+  --warning: #b45309;
+  --danger: #dc2626;
+  --info: #2563eb;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: #0c0f0b;
+    --surface: var(--brand-graphite);
+    --surface-muted: #20251e;
+    --foreground: #f4f7f0;
+    --muted: #b2bbae;
+    --border: #343b31;
+    --focus-ring: var(--brand-lime);
+    --success: #4ade80;
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --info: #60a5fa;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --background: #0c0f0b;
+  --surface: var(--brand-graphite);
+  --surface-muted: #20251e;
+  --foreground: #f4f7f0;
+  --muted: #b2bbae;
+  --border: #343b31;
+  --focus-ring: var(--brand-lime);
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --info: #60a5fa;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-focus-ring: var(--focus-ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-brand-carbon: var(--brand-carbon);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Show the logo that matches the active theme. */
+.logo-for-dark {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .logo-for-light {
+    display: none;
+  }
+  :root:not([data-theme="light"]) .logo-for-dark {
+    display: block;
+  }
+}
+
+:root[data-theme="dark"] .logo-for-light {
+  display: none;
+}
+
+:root[data-theme="dark"] .logo-for-dark {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
