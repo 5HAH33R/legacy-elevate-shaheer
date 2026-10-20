@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { requirePageBusiness } from "@/server/page-guards";
 import { listProductsForBusiness } from "@/server/products";
 import { listSalesForBusiness } from "@/server/sales";
-import { listExpensesForBusiness } from "@/server/expenses";
+import { activeExpenses, listExpensesForBusiness } from "@/server/expenses";
 import { calcGrossProfit, lowStockItems } from "@/lib/calculations";
 import { formatMoney, sumMoney } from "@/lib/money";
 import { WorkspaceHeader } from "@/features/workspace/workspace-header";
@@ -36,11 +36,12 @@ async function BusinessSummary({
 }) {
   const { businessId } = await params;
   const business = await requirePageBusiness(businessId);
-  const [products, sales, expenses] = await Promise.all([
+  const [products, sales, allExpenses] = await Promise.all([
     listProductsForBusiness(businessId),
     listSalesForBusiness(businessId),
     listExpensesForBusiness(businessId),
   ]);
+  const expenses = activeExpenses(allExpenses); // voided are excluded
 
   // All totals come from recorded data only — never estimated (AGENTS.md 12).
   const revenue = sumMoney(sales.map((sale) => sale.total));

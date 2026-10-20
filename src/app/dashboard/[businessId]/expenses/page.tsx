@@ -43,20 +43,32 @@ function ExpenseList({
         </thead>
         <tbody>
           {expenses.map((expense) => (
-            <tr key={expense.expenseId} className="border-t border-border">
+            <tr
+              key={expense.expenseId}
+              className={`border-t border-border ${expense.voidedAt ? "text-muted" : ""}`}
+            >
               <td className="px-4 py-3">{expense.date}</td>
               <td className="px-4 py-3 font-medium">{expense.category}</td>
               <td className="px-4 py-3 text-muted">
                 {expense.description ?? "—"}
+                {expense.voidReason ? ` (${expense.voidReason})` : ""}
               </td>
-              <td className="px-4 py-3 text-right font-medium">
+              <td
+                className={`px-4 py-3 text-right font-medium ${expense.voidedAt ? "line-through" : ""}`}
+              >
                 {formatMoney(expense.amount, currency)}
               </td>
               <td className="px-4 py-3">
-                <DeleteExpenseButton
-                  businessId={businessId}
-                  expenseId={expense.expenseId}
-                />
+                {expense.voidedAt ? (
+                  <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium">
+                    Voided
+                  </span>
+                ) : (
+                  <DeleteExpenseButton
+                    businessId={businessId}
+                    expenseId={expense.expenseId}
+                  />
+                )}
               </td>
             </tr>
           ))}
@@ -88,7 +100,11 @@ async function ExpensesContent({
       </section>
 
       <BusinessNav businessId={businessId} />
-      <ExpenseForm businessId={businessId} currency={business.currency} />
+      <ExpenseForm
+        businessId={businessId}
+        currency={business.currency}
+        timezone={business.timezone}
+      />
       <ExpenseList
         businessId={businessId}
         expenses={expenses}

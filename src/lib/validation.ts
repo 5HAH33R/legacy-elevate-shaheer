@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidTimeZone } from "./dates";
 import { parseMoney, type MinorUnits } from "./money";
 
 /**
@@ -29,6 +30,12 @@ export function moneyField(label: string) {
       return amount;
     });
 }
+
+/** IANA time zone name, e.g. "Asia/Karachi". */
+export const timeZoneField = z
+  .string()
+  .trim()
+  .refine(isValidTimeZone, "Use an IANA time zone like Asia/Karachi.");
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { todayInTimeZone } from "@/lib/dates";
 import { minorToDecimalString } from "@/lib/money";
 import {
   errorTextClass,
@@ -31,15 +32,17 @@ const emptyRow = (): ItemRow => ({ productId: "", quantity: "1", unitPrice: "" }
 export function SaleForm({
   businessId,
   currency,
+  timezone,
   products,
 }: {
   businessId: string;
   currency: string;
+  timezone: string;
   products: SaleProduct[];
 }) {
   const router = useRouter();
   const saleIdRef = useRef<string>(crypto.randomUUID());
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => todayInTimeZone(timezone));
   const [items, setItems] = useState<ItemRow[]>([emptyRow()]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);

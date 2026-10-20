@@ -14,7 +14,16 @@ Phase 3 (business records: products, inventory, sales, expenses and a recorded-d
 - **Expenses** (`/dashboard/[businessId]/expenses`): record and delete dated, categorized expenses.
 - **Summary** (`/dashboard/[businessId]`): recorded revenue, recorded expenses and gross profit (cost basis: unit costs snapshotted at sale time), plus low-stock alerts. Every figure is computed from the owner's own records — nothing is estimated or invented, and gross profit is never presented as net profit.
 
-Suppliers, purchases, invoices and the AI assistant come in later phases.
+Phase 4 adds **suppliers** and **purchases** (`/dashboard/[businessId]/suppliers`, `/purchases`):
+
+- Suppliers can be created, edited and archived (never hard-deleted).
+- A purchase is idempotent on a client `purchaseId`, validates the supplier and products belong to the business, computes the total on the server, and increases stock through `applyStockMovements` (`purchase` movements) in one transaction.
+- **Cost policy:** `products.unitCost` is set to the latest purchase unit cost (the product page shows "cost updated from purchase on <date>"). Voiding a purchase does not roll the cost back.
+- **Void:** writes reversing movements (rejected with 409 if stock would go negative) and sets `voidedAt`/`voidedBy`. Nothing is deleted.
+- Price history is listed on the product and supplier pages (data only, no comparison logic).
+- Purchase lists filter by date and supplier in memory on a single-field `businessId` query, so no composite index is needed at MVP scale.
+
+Invoices and the AI assistant come in later phases.
 
 ## How authentication works
 

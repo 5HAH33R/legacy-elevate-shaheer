@@ -16,13 +16,18 @@ export function DeleteExpenseButton({
   const [error, setError] = useState(false);
 
   async function onDelete() {
-    if (!window.confirm("Delete this expense? This cannot be undone.")) return;
+    const reason = window.prompt("Void this expense? Optional reason:");
+    if (reason === null) return;
     setError(false);
     setPending(true);
     try {
       const response = await fetch(
         `/api/businesses/${businessId}/expenses/${expenseId}`,
-        { method: "DELETE" },
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason }),
+        },
       );
       if (!response.ok) throw new Error("delete failed");
       router.refresh();
@@ -40,11 +45,11 @@ export function DeleteExpenseButton({
         disabled={pending}
         className="text-xs font-medium text-danger underline underline-offset-4 hover:brightness-110 disabled:opacity-60"
       >
-        {pending ? "Deleting…" : "Delete"}
+        {pending ? "Voiding…" : "Void"}
       </button>
       {error ? (
         <span role="alert" className="text-xs text-danger">
-          Could not delete.
+          Could not void.
         </span>
       ) : null}
     </span>

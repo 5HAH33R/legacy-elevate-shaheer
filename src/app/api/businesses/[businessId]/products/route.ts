@@ -31,7 +31,7 @@ export async function POST(request: Request, context: RouteContext) {
     await requireBusinessOwner(user.uid, businessId);
     const json = await request.json().catch(() => null);
     const input = createProductSchema.parse(json ?? {});
-    const product = await createProductForBusiness(businessId, input);
+    const product = await createProductForBusiness(businessId, input, user.uid);
     return NextResponse.json({ product }, { status: 201 });
   } catch (error) {
     return errorResponse(error);
