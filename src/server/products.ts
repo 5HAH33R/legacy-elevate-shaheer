@@ -6,6 +6,7 @@ import { getAdminDb } from "@/lib/firebase/admin";
 import type { MinorUnits } from "@/lib/money";
 import { countField, moneyField } from "@/lib/validation";
 import { ApiError } from "./errors";
+import { writeOpeningMovement } from "./inventory";
 import { toIso, toNullableString, toNumber } from "./serialize";
 
 const nameField = z.string().trim().min(1, "Product name is required.").max(120);
@@ -24,7 +25,6 @@ export const updateProductSchema = z
   .object({
     name: nameField.optional(),
     sku: z.string().trim().max(60).nullable().optional(),
-    quantity: countField("Stock quantity").optional(),
     unitCost: moneyField("Unit cost").optional(),
     sellingPrice: moneyField("Selling price").optional(),
     reorderLevel: countField("Reorder level").nullable().optional(),
@@ -83,19 +83,28 @@ export async function listProductsForBusiness(
 export async function createProductForBusiness(
   businessId: string,
   input: CreateProductInput,
+  actorId: string | null = null,
   db: Firestore = getAdminDb(),
 ): Promise<Product> {
   const ref = db.collection("products").doc();
-  await ref.set({
-    businessId,
-    name: input.name,
-    sku: input.sku ?? null,
-    quantity: input.quantity,
-    unitCost: input.unitCost,
-    sellingPrice: input.sellingPrice,
-    reorderLevel: input.reorderLevel ?? null,
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
+  await db.runTransaction(async (tx) => {
+    tx.set(ref, {
+      businessId,
+      name: input.name,
+      sku: input.sku ?? null,
+      quantity: input.quantity,
+      unitCost: input.unitCost,
+      sellingPrice: input.sellingPrice,
+      reorderLevel: input.reorderLevel ?? null,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    writeOpeningMovement(tx, db, {
+      businessId,
+      productId: ref.id,
+      quantity: input.quantity,
+      actorId,
+    });
   });
   return {
     productId: ref.id,
@@ -137,7 +146,6 @@ export async function updateProductForBusiness(
   };
   if (input.name !== undefined) updates.name = input.name;
   if (input.sku !== undefined) updates.sku = input.sku;
-  if (input.quantity !== undefined) updates.quantity = input.quantity;
   if (input.unitCost !== undefined) updates.unitCost = input.unitCost;
   if (input.sellingPrice !== undefined) updates.sellingPrice = input.sellingPrice;
   if (input.reorderLevel !== undefined) updates.reorderLevel = input.reorderLevel;

@@ -26,6 +26,9 @@ export type Expense = {
   description: string | null;
   amount: MinorUnits;
   createdAt: string | null;
+  voidedAt: string | null;
+  voidedBy: string | null;
+  voidReason: string | null;
 };
 
 function serializeExpense(id: string, data: DocumentData): Expense {
@@ -37,6 +40,12 @@ function serializeExpense(id: string, data: DocumentData): Expense {
     description: toNullableString(data.description),
     amount: toNumber(data.amount),
     createdAt: toIso(data.createdAt),
+    // A voided doc always counts as voided even if the timestamp is pending.
+    voidedAt: data.voidedAt
+      ? (toIso(data.voidedAt) ?? new Date(0).toISOString())
+      : null,
+    voidedBy: toNullableString(data.voidedBy),
+    voidReason: toNullableString(data.voidReason),
   };
 }
 
@@ -76,13 +85,26 @@ export async function createExpenseForBusiness(
     description: input.description ?? null,
     amount: input.amount,
     createdAt: null,
+    voidedAt: null,
+    voidedBy: null,
+    voidReason: null,
   };
 }
 
-/** Delete only when the expense belongs to the business; 404 otherwise. */
-export async function deleteExpenseForBusiness(
+/** Expenses that still count toward totals. */
+export function activeExpenses(expenses: Expense[]): Expense[] {
+  return expenses.filter((e) => e.voidedAt === null);
+}
+
+/**
+ * Void (never erase) an expense that belongs to the business; 404 otherwise.
+ * Voiding twice keeps the original voidedAt/voidedBy.
+ */
+export async function voidExpenseForBusiness(
   businessId: string,
   expenseId: string,
+  actorId: string | null,
+  voidReason?: string,
   db: Firestore = getAdminDb(),
 ): Promise<void> {
   const ref = db.collection("expenses").doc(expenseId);
@@ -91,5 +113,10 @@ export async function deleteExpenseForBusiness(
   if (!snapshot.exists || !data || data.businessId !== businessId) {
     throw new ApiError(404, "Expense not found.");
   }
-  await ref.delete();
+  if (data.voidedAt) return;
+  await ref.update({
+    voidedAt: FieldValue.serverTimestamp(),
+    voidedBy: actorId,
+    voidReason: voidReason?.trim() ? voidReason.trim().slice(0, 240) : null,
+  });
 }

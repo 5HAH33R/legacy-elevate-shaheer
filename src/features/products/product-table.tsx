@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatMoney, minorToDecimalString } from "@/lib/money";
 import { errorTextClass, inputClass } from "@/features/auth/ui";
@@ -34,7 +35,6 @@ function EditRow({
   const router = useRouter();
   const [name, setName] = useState(product.name);
   const [sku, setSku] = useState(product.sku ?? "");
-  const [quantity, setQuantity] = useState(String(product.quantity));
   const [unitCost, setUnitCost] = useState(minorToDecimalString(product.unitCost));
   const [sellingPrice, setSellingPrice] = useState(
     minorToDecimalString(product.sellingPrice),
@@ -58,7 +58,6 @@ function EditRow({
           body: JSON.stringify({
             name: name.trim(),
             sku: sku.trim() === "" ? null : sku.trim(),
-            quantity: Number(quantity),
             unitCost: unitCost.trim(),
             sellingPrice: sellingPrice.trim(),
             reorderLevel: reorderLevel.trim() === "" ? null : Number(reorderLevel),
@@ -89,10 +88,6 @@ function EditRow({
             <label className="flex flex-col gap-1 text-xs font-medium">
               SKU
               <input value={sku} onChange={(e) => setSku(e.target.value)} maxLength={60} className={editInputClass} />
-            </label>
-            <label className="flex flex-col gap-1 text-xs font-medium">
-              Stock
-              <input type="number" min={0} step={1} value={quantity} onChange={(e) => setQuantity(e.target.value)} required className={editInputClass} />
             </label>
             <label className="flex flex-col gap-1 text-xs font-medium">
               Unit cost
@@ -192,6 +187,12 @@ export function ProductTable({
                   >
                     Edit
                   </button>
+                  <Link
+                    href={`/dashboard/${businessId}/products/${product.productId}`}
+                    className="ml-3 text-xs font-medium underline underline-offset-4 hover:text-muted"
+                  >
+                    Stock
+                  </Link>
                 </td>
               </tr>
             ),

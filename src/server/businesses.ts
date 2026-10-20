@@ -5,7 +5,10 @@ import {
   type DocumentData,
   type Firestore,
 } from "firebase-admin/firestore";
+import { cache } from "react";
 import { z } from "zod";
+import { DEFAULT_TIME_ZONE } from "@/lib/dates";
+import { timeZoneField } from "@/lib/validation";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { ApiError } from "./errors";
 
@@ -17,6 +20,7 @@ export const createBusinessSchema = z.object({
     .trim()
     .regex(/^[A-Z]{3}$/, "Use a 3-letter currency code such as PKR.")
     .default("PKR"),
+  timezone: timeZoneField.default(DEFAULT_TIME_ZONE),
 });
 
 export const updateBusinessSchema = z
@@ -28,6 +32,7 @@ export const updateBusinessSchema = z
       .trim()
       .regex(/^[A-Z]{3}$/, "Use a 3-letter currency code such as PKR.")
       .optional(),
+    timezone: timeZoneField.optional(),
   })
   .refine((data) => Object.values(data).some((value) => value !== undefined), {
     message: "Nothing to update.",
@@ -43,6 +48,7 @@ export type Business = {
   name: string;
   businessType: string | null;
   currency: string;
+  timezone: string;
   createdAt: string | null;
   updatedAt: string | null;
 };
@@ -64,6 +70,10 @@ function serializeBusiness(id: string, data: DocumentData): Business {
         ? data.businessType
         : null,
     currency: String(data.currency ?? "PKR"),
+    timezone:
+      typeof data.timezone === "string" && data.timezone !== ""
+        ? data.timezone
+        : DEFAULT_TIME_ZONE,
     createdAt: toIso(data.createdAt),
     updatedAt: toIso(data.updatedAt),
   };
@@ -96,6 +106,7 @@ export async function createBusinessForUser(
     name: input.name,
     businessType: input.businessType ?? null,
     currency: input.currency,
+    timezone: input.timezone,
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
   };
@@ -106,6 +117,7 @@ export async function createBusinessForUser(
     name: input.name,
     businessType: input.businessType ?? null,
     currency: input.currency,
+    timezone: input.timezone,
     createdAt: null,
     updatedAt: null,
   };
@@ -116,10 +128,10 @@ export async function createBusinessForUser(
  * route must go through this. Responds 404 in every failure case so other
  * users cannot tell whether a businessId exists (AGENTS.md section 8).
  */
-export async function requireBusinessOwner(
+async function loadOwnedBusiness(
   uid: string,
   businessId: string,
-  db: Firestore = getAdminDb(),
+  db: Firestore,
 ): Promise<Business> {
   const snapshot = await db.collection("businesses").doc(businessId).get();
   if (!snapshot.exists) throw new ApiError(404, "Business not found.");
@@ -128,6 +140,20 @@ export async function requireBusinessOwner(
     throw new ApiError(404, "Business not found.");
   }
   return serializeBusiness(snapshot.id, data);
+}
+
+const cachedOwnerLookup = cache(
+  (uid: string, businessId: string, db: Firestore) =>
+    loadOwnedBusiness(uid, businessId, db),
+);
+
+/** Per-request memoized (React cache); never a cross-request cache. */
+export function requireBusinessOwner(
+  uid: string,
+  businessId: string,
+  db: Firestore = getAdminDb(),
+): Promise<Business> {
+  return cachedOwnerLookup(uid, businessId, db);
 }
 
 export async function updateBusinessForOwner(
@@ -144,6 +170,7 @@ export async function updateBusinessForOwner(
   if (input.businessType !== undefined)
     updates.businessType = input.businessType;
   if (input.currency !== undefined) updates.currency = input.currency;
+  if (input.timezone !== undefined) updates.timezone = input.timezone;
   await db.collection("businesses").doc(businessId).update(updates);
-  return requireBusinessOwner(uid, businessId, db);
+  return loadOwnedBusiness(uid, businessId, db);
 }

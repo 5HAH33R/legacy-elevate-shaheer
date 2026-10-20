@@ -17,6 +17,7 @@ export function OnboardingForm() {
   const [name, setName] = useState("");
   const [businessType, setBusinessType] = useState("");
   const [currency, setCurrency] = useState<string>("PKR");
+  const [timezone, setTimezone] = useState<string>("Asia/Karachi");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -35,6 +36,7 @@ export function OnboardingForm() {
             ? { businessType: businessType.trim() }
             : {}),
           currency,
+          timezone: timezone.trim() || "Asia/Karachi",
         }),
       });
       const data = (await response.json().catch(() => null)) as {
@@ -100,6 +102,20 @@ export function OnboardingForm() {
             </option>
           ))}
         </select>
+      </div>
+
+      <div className={fieldClass}>
+        <label htmlFor="business-timezone" className={labelClass}>
+          Time zone
+        </label>
+        <input
+          id="business-timezone"
+          type="text"
+          value={timezone}
+          onChange={(event) => setTimezone(event.target.value)}
+          className={inputClass}
+          placeholder="Asia/Karachi"
+        />
       </div>
 
       {error ? (

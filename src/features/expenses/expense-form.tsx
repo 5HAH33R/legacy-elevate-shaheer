@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { todayInTimeZone } from "@/lib/dates";
 import {
   errorTextClass,
   fieldClass,
@@ -25,12 +26,14 @@ const COMMON_CATEGORIES = [
 export function ExpenseForm({
   businessId,
   currency,
+  timezone,
 }: {
   businessId: string;
   currency: string;
+  timezone: string;
 }) {
   const router = useRouter();
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => todayInTimeZone(timezone));
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");

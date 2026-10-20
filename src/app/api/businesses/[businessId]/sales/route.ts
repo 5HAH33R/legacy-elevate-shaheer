@@ -32,10 +32,15 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const user = await requireUser();
     const { businessId } = await context.params;
-    await requireBusinessOwner(user.uid, businessId);
+    const business = await requireBusinessOwner(user.uid, businessId);
     const json = await request.json().catch(() => null);
     const input = createSaleSchema.parse(json ?? {});
-    const result = await recordSaleForBusiness(businessId, input);
+    const result = await recordSaleForBusiness(
+      businessId,
+      input,
+      user.uid,
+      business.timezone,
+    );
     return NextResponse.json(result, { status: result.created ? 201 : 200 });
   } catch (error) {
     return errorResponse(error);

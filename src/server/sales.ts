@@ -6,7 +6,9 @@ import { getAdminDb } from "@/lib/firebase/admin";
 import { calcItemsTotal } from "@/lib/calculations";
 import type { MinorUnits } from "@/lib/money";
 import { dateField, moneyField } from "@/lib/validation";
+import { DEFAULT_TIME_ZONE, todayInTimeZone } from "@/lib/dates";
 import { ApiError } from "./errors";
+import { applyStockMovements } from "./inventory";
 import { toIso, toNumber } from "./serialize";
 
 const saleItemSchema = z.object({
@@ -105,6 +107,8 @@ export type RecordSaleResult = { sale: Sale; created: boolean };
 export async function recordSaleForBusiness(
   businessId: string,
   input: CreateSaleInput,
+  actorId: string | null = null,
+  timeZone: string = DEFAULT_TIME_ZONE,
   db: Firestore = getAdminDb(),
 ): Promise<RecordSaleResult> {
   const productIds = input.items.map((item) => item.productId);
@@ -113,7 +117,7 @@ export async function recordSaleForBusiness(
   }
 
   const saleRef = db.collection("sales").doc(input.saleId);
-  const date = input.date ?? new Date().toISOString().slice(0, 10);
+  const date = input.date ?? todayInTimeZone(timeZone);
 
   return db.runTransaction(async (tx) => {
     const existing = await tx.get(saleRef);
@@ -129,7 +133,6 @@ export async function recordSaleForBusiness(
     const productSnaps = await Promise.all(productRefs.map((ref) => tx.get(ref)));
 
     const items: SaleItem[] = [];
-    const deductions: { ref: (typeof productRefs)[number]; remaining: number }[] = [];
     productSnaps.forEach((snapshot, index) => {
       const data = snapshot.data();
       if (!snapshot.exists || !data || data.businessId !== businessId) {
@@ -151,13 +154,22 @@ export async function recordSaleForBusiness(
         unitPrice: requested.unitPrice ?? toNumber(data.sellingPrice),
         unitCost: toNumber(data.unitCost),
       });
-      deductions.push({ ref: productRefs[index], remaining });
     });
 
     const total = calcItemsTotal(items);
-    for (const { ref, remaining } of deductions) {
-      tx.update(ref, { quantity: remaining, updatedAt: FieldValue.serverTimestamp() });
-    }
+    await applyStockMovements(
+      tx,
+      items.map((item) => ({
+        businessId,
+        productId: item.productId,
+        type: "sale" as const,
+        quantityDelta: -item.quantity,
+        reason: "Sale",
+        sourceRef: saleRef.id,
+        actorId,
+      })),
+      db,
+    );
     tx.set(saleRef, {
       businessId,
       date,

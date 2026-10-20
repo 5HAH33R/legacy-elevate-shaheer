@@ -14,6 +14,9 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    // Cold first runs load route handlers + Firebase Admin slowly.
+    testTimeout: 20000,
+    hookTimeout: 20000,
     include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
   },
 });

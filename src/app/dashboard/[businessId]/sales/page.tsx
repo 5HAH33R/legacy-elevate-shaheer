@@ -71,6 +71,7 @@ async function SalesContent({
       <SaleForm
         businessId={businessId}
         currency={business.currency}
+        timezone={business.timezone}
         products={products.map((product) => ({
           productId: product.productId,
           name: product.name,
