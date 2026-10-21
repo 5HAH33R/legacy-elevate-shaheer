@@ -4,34 +4,37 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { listBusinessesForUser, type Business } from "@/server/businesses";
 import { requirePageUser } from "@/server/page-guards";
+import { ArrowRightIcon } from "@/components/icons";
 import { WorkspaceHeader } from "@/features/workspace/workspace-header";
+import { PageHeader, PageSkeleton } from "@/features/workspace/page-header";
 
-export const metadata: Metadata = { title: "Dashboard — Elevate" };
+export const metadata: Metadata = { title: "Your businesses — Elevate" };
 
 function BusinessCard({ business }: { business: Business }) {
   return (
-    <li className="rounded-2xl border border-border bg-surface p-6 transition hover:border-focus-ring">
-      <Link href={`/dashboard/${business.businessId}`} className="block">
-        <h2 className="text-lg font-semibold">{business.name}</h2>
-      <dl className="mt-3 flex flex-col gap-1 text-sm">
-        <div className="flex justify-between gap-4">
-          <dt className="text-muted">Type</dt>
-          <dd>{business.businessType ?? "Not set"}</dd>
+    <li>
+      <Link
+        href={`/dashboard/${business.businessId}`}
+        className="group flex h-full flex-col rounded-xl border border-border bg-surface p-5 transition hover:border-control"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-base font-semibold">{business.name}</h2>
+          <ArrowRightIcon className="mt-0.5 shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-foreground" />
         </div>
-        <div className="flex justify-between gap-4">
-          <dt className="text-muted">Currency</dt>
-          <dd>{business.currency}</dd>
-        </div>
-        {business.createdAt ? (
-          <div className="flex justify-between gap-4">
-            <dt className="text-muted">Created</dt>
-            <dd>{business.createdAt.slice(0, 10)}</dd>
+        <dl className="mt-4 grid grid-cols-3 gap-3 text-sm">
+          <div>
+            <dt className="text-xs text-muted">Type</dt>
+            <dd className="mt-0.5 truncate">{business.businessType ?? <span className="text-muted">—</span>}</dd>
           </div>
-        ) : null}
-      </dl>
-        <p className="mt-4 text-sm font-medium underline underline-offset-4">
-          Open workspace →
-        </p>
+          <div>
+            <dt className="text-xs text-muted">Currency</dt>
+            <dd className="mt-0.5">{business.currency}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted">Since</dt>
+            <dd className="num mt-0.5">{business.createdAt ? business.createdAt.slice(0, 10) : "—"}</dd>
+          </div>
+        </dl>
       </Link>
     </li>
   );
@@ -44,29 +47,15 @@ async function DashboardContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Welcome{user.name ? `, ${user.name}` : ""}
-        </h1>
-        <p className="mt-1 text-sm text-muted">
-          This is your private workspace. Only you can see it.
-        </p>
-      </section>
-
-      <ul className="grid gap-4 sm:grid-cols-2">
+      <PageHeader
+        title="Your businesses"
+        description={`Signed in${user.name ? ` as ${user.name}` : ""}. Each workspace is private to your account.`}
+      />
+      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {businesses.map((business) => (
           <BusinessCard key={business.businessId} business={business} />
         ))}
       </ul>
-
-      <section className="rounded-2xl border border-border bg-surface-muted p-6">
-        <h2 className="text-base font-semibold">Your records, your numbers</h2>
-        <p className="mt-2 text-sm text-muted">
-          Open a business to manage products and stock, record sales and
-          expenses, and see totals calculated from your own records. Suppliers,
-          invoices and the AI assistant come in later phases.
-        </p>
-      </section>
     </div>
   );
 }
@@ -75,8 +64,8 @@ export default function DashboardPage() {
   return (
     <>
       <WorkspaceHeader />
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8 sm:px-6">
-        <Suspense fallback={<p className="text-sm text-muted">Loading…</p>}>
+      <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 pt-8 pb-16 sm:px-8">
+        <Suspense fallback={<PageSkeleton />}>
           <DashboardContent />
         </Suspense>
       </main>
