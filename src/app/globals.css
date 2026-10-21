@@ -6,6 +6,11 @@
  * use it through Tailwind utilities (bg-surface, text-muted, ...). Do not put
  * raw hex values in components.
  *
+ * Colour budget: the chrome is neutral (white and graphite greys). Electric
+ * lime goes on the one primary action per screen, the active marks and the
+ * main data series only. Status colours are for status and always come with
+ * text or an icon.
+ *
  * Theme selection: <html data-theme="light|dark"> is set before first paint by
  * the inline script in layout.tsx. Without it, the OS preference applies.
  */
@@ -17,55 +22,97 @@
   --brand-graphite: #171b16;
   --brand-soft-white: #f6f8f4;
 
-  /* Light theme (default) */
-  --background: var(--brand-soft-white);
+  /* Light theme (default): a white page, one soft tone step for panels. */
+  --background: #ffffff;
   --surface: #ffffff;
-  --surface-muted: #eef1ea;
-  --foreground: var(--brand-graphite);
-  --muted: #596157;
-  --border: #dde2d8;
+  --surface-muted: #f6f7f4;
+  --sidebar: #fafbf8;
+  --active: #ebede7;
+  --foreground: #111410;
+  --muted: #5b6257;
+  --border: #e6e8e2;
+  --rule: #eff1ec;
+  --control: #d2d6cd;
   --primary: var(--brand-lime);
   --primary-foreground: var(--brand-graphite);
+  --ink-button: var(--brand-graphite);
+  --ink-button-foreground: #ffffff;
   --focus-ring: #4d6b00;
+  /* Data series: lime reads too pale on white, so light uses a deep lime. */
+  --chart: #6f9e00;
+  --chart-muted: #dfe3da;
 
   /* Status: always pair with text or an icon, never color alone. */
-  --success: #15803d;
-  --warning: #b45309;
-  --danger: #dc2626;
+  --success: #247b50;
+  --success-bg: #e3f7e9;
+  --warning: #92400e;
+  --warning-bg: #fffbeb;
+  --warning-border: #fde68a;
+  --danger: #c4242a;
+  --danger-bg: #ffedea;
   --info: #2563eb;
+
+  --shadow-float: 0 12px 32px rgb(17 20 16 / 0.12);
 
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: #0c0f0b;
-    --surface: var(--brand-graphite);
-    --surface-muted: #20251e;
+    --background: var(--brand-carbon);
+    --surface: #0f120e;
+    --surface-muted: var(--brand-graphite);
+    --sidebar: #0b0d0a;
+    --active: #1d221b;
     --foreground: #f4f7f0;
-    --muted: #b2bbae;
-    --border: #343b31;
+    --muted: #a8b1a3;
+    --border: #222820;
+    --rule: #1a1e18;
+    --control: #3a4236;
+    --ink-button: #f4f7f0;
+    --ink-button-foreground: var(--brand-graphite);
     --focus-ring: var(--brand-lime);
-    --success: #4ade80;
+    --chart: var(--brand-lime);
+    --chart-muted: #2a3027;
+    /* With a lime accent, "good" is the accent itself. */
+    --success: var(--brand-lime);
+    --success-bg: #1c2410;
     --warning: #fbbf24;
-    --danger: #f87171;
+    --warning-bg: #231c0b;
+    --warning-border: #4a3a10;
+    --danger: #f2707a;
+    --danger-bg: #2c1a1c;
     --info: #60a5fa;
+    --shadow-float: 0 12px 32px rgb(0 0 0 / 0.5);
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
-  --background: #0c0f0b;
-  --surface: var(--brand-graphite);
-  --surface-muted: #20251e;
+  --background: var(--brand-carbon);
+  --surface: #0f120e;
+  --surface-muted: var(--brand-graphite);
+  --sidebar: #0b0d0a;
+  --active: #1d221b;
   --foreground: #f4f7f0;
-  --muted: #b2bbae;
-  --border: #343b31;
+  --muted: #a8b1a3;
+  --border: #222820;
+  --rule: #1a1e18;
+  --control: #3a4236;
+  --ink-button: #f4f7f0;
+  --ink-button-foreground: var(--brand-graphite);
   --focus-ring: var(--brand-lime);
-  --success: #4ade80;
+  --chart: var(--brand-lime);
+  --chart-muted: #2a3027;
+  --success: var(--brand-lime);
+  --success-bg: #1c2410;
   --warning: #fbbf24;
-  --danger: #f87171;
+  --warning-bg: #231c0b;
+  --warning-border: #4a3a10;
+  --danger: #f2707a;
+  --danger-bg: #2c1a1c;
   --info: #60a5fa;
+  --shadow-float: 0 12px 32px rgb(0 0 0 / 0.5);
   color-scheme: dark;
 }
 
@@ -73,19 +120,33 @@
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-muted: var(--surface-muted);
+  --color-sidebar: var(--sidebar);
+  --color-active: var(--active);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-border: var(--border);
+  --color-rule: var(--rule);
+  --color-control: var(--control);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-ink-button: var(--ink-button);
+  --color-ink-button-foreground: var(--ink-button-foreground);
   --color-focus-ring: var(--focus-ring);
+  --color-chart: var(--chart);
+  --color-chart-muted: var(--chart-muted);
   --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
   --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-border: var(--warning-border);
   --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
   --color-info: var(--info);
   --color-brand-carbon: var(--brand-carbon);
+  --color-brand-lime: var(--brand-lime);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --shadow-float: var(--shadow-float);
 }
 
 body {
@@ -93,30 +154,46 @@ body {
   color: var(--foreground);
 }
 
+/* Figures line up digit for digit wherever they are compared. */
+table,
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: var(--brand-lime);
+  color: var(--brand-graphite);
+}
+
 :focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
-/* Show the logo that matches the active theme. */
-.logo-for-dark {
+/* Show the logo (and theme icon) that matches the active theme. */
+.logo-for-dark,
+.only-dark {
   display: none;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .logo-for-light {
+  :root:not([data-theme="light"]) .logo-for-light,
+  :root:not([data-theme="light"]) .only-light {
     display: none;
   }
-  :root:not([data-theme="light"]) .logo-for-dark {
+  :root:not([data-theme="light"]) .logo-for-dark,
+  :root:not([data-theme="light"]) .only-dark {
     display: block;
   }
 }
 
-:root[data-theme="dark"] .logo-for-light {
+:root[data-theme="dark"] .logo-for-light,
+:root[data-theme="dark"] .only-light {
   display: none;
 }
 
-:root[data-theme="dark"] .logo-for-dark {
+:root[data-theme="dark"] .logo-for-dark,
+:root[data-theme="dark"] .only-dark {
   display: block;
 }
 

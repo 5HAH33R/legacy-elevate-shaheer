@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requirePageBusiness } from "@/server/page-guards";
 import { listSuppliersForBusiness } from "@/server/suppliers";
-import { WorkspaceHeader } from "@/features/workspace/workspace-header";
-import { BusinessNav } from "@/features/workspace/business-nav";
+import { PageHeader, PageSkeleton } from "@/features/workspace/page-header";
 import { SupplierForm } from "@/features/suppliers/supplier-form";
+import { emptyStateClass, panelClass, panelTitleClass } from "@/features/auth/ui";
 
 export const metadata: Metadata = { title: "Suppliers — Elevate" };
 
@@ -13,42 +13,53 @@ type Params = Promise<{ businessId: string }>;
 
 async function SuppliersContent({ params }: { params: Params }) {
   const { businessId } = await params;
-  const business = await requirePageBusiness(businessId);
+  await requirePageBusiness(businessId);
   const suppliers = await listSuppliersForBusiness(businessId);
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{business.name} — Suppliers</h1>
-      <BusinessNav businessId={businessId} />
-      <SupplierForm businessId={businessId} />
+      <PageHeader
+        title="Suppliers"
+        description="The people and wholesalers you buy stock from. Open one to see what you paid them over time."
+      />
       {suppliers.length === 0 ? (
-        <p className="rounded-2xl border border-border bg-surface-muted p-6 text-sm text-muted">
-          No suppliers yet.
+        <p className={emptyStateClass}>
+          No suppliers yet. Add the first one below, then record purchases against them.
         </p>
       ) : (
-        <ul className="flex flex-col gap-3">
-          {suppliers.map((s) => (
-            <li key={s.supplierId} className="rounded-2xl border border-border bg-surface p-4 text-sm">
-              <Link href={`/dashboard/${businessId}/suppliers/${s.supplierId}`} className="font-medium underline underline-offset-4">
-                {s.name}
-              </Link>
-              <p className="text-muted">{s.contact.phone ?? s.contact.email ?? "No contact details"}</p>
-            </li>
-          ))}
-        </ul>
+        <section aria-labelledby="suppliers-heading" className={panelClass}>
+          <div className="flex items-baseline justify-between gap-3 px-5 pt-5 pb-2 sm:px-6">
+            <h2 id="suppliers-heading" className={panelTitleClass}>Your suppliers</h2>
+            <span className="num text-sm text-muted">{suppliers.length}</span>
+          </div>
+          <ul>
+            {suppliers.map((s) => (
+              <li key={s.supplierId} className="border-t border-rule first:border-t-0">
+                <Link
+                  href={`/dashboard/${businessId}/suppliers/${s.supplierId}`}
+                  className="flex items-center justify-between gap-4 px-5 py-3 text-sm transition hover:bg-surface-muted/60 sm:px-6"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">{s.name}</span>
+                    <span className="block truncate text-xs text-muted">
+                      {s.contact.phone ?? s.contact.email ?? "No contact details"}
+                    </span>
+                  </span>
+                  <span aria-hidden="true" className="text-muted">→</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
+      <SupplierForm businessId={businessId} />
     </div>
   );
 }
 
 export default function SuppliersPage({ params }: { params: Params }) {
   return (
-    <>
-      <WorkspaceHeader />
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8 sm:px-6">
-        <Suspense fallback={<p className="text-sm text-muted">Loading…</p>}>
-          <SuppliersContent params={params} />
-        </Suspense>
-      </main>
-    </>
+    <Suspense fallback={<PageSkeleton />}>
+      <SuppliersContent params={params} />
+    </Suspense>
   );
 }

@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { requirePageBusiness } from "@/server/page-guards";
 import { listProductsForBusiness } from "@/server/products";
-import { WorkspaceHeader } from "@/features/workspace/workspace-header";
-import { BusinessNav } from "@/features/workspace/business-nav";
+import { lowStockItems } from "@/lib/calculations";
+import { PageHeader, PageSkeleton } from "@/features/workspace/page-header";
 import { ProductForm } from "@/features/products/product-form";
 import { ProductTable } from "@/features/products/product-table";
 
@@ -17,25 +17,24 @@ async function ProductsContent({
   const { businessId } = await params;
   const business = await requirePageBusiness(businessId);
   const products = await listProductsForBusiness(businessId);
+  const low = lowStockItems(products).length;
 
   return (
     <div className="flex flex-col gap-6">
-      <section>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {business.name} — Products
-        </h1>
-        <p className="mt-1 text-sm text-muted">
-          Your inventory. Sales reduce stock automatically.
-        </p>
-      </section>
-
-      <BusinessNav businessId={businessId} />
-      <ProductForm businessId={businessId} currency={business.currency} />
+      <PageHeader
+        title="Products & stock"
+        description={
+          products.length === 0
+            ? "Your inventory. Sales take stock out automatically and purchases put it back."
+            : `${products.length} product${products.length === 1 ? "" : "s"}${low > 0 ? `, ${low} running low` : ""}. Sales take stock out automatically and purchases put it back.`
+        }
+      />
       <ProductTable
         businessId={businessId}
         currency={business.currency}
         products={products}
       />
+      <ProductForm businessId={businessId} currency={business.currency} />
     </div>
   );
 }
@@ -46,13 +45,8 @@ export default function ProductsPage({
   params: Promise<{ businessId: string }>;
 }) {
   return (
-    <>
-      <WorkspaceHeader />
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8 sm:px-6">
-        <Suspense fallback={<p className="text-sm text-muted">Loading…</p>}>
-          <ProductsContent params={params} />
-        </Suspense>
-      </main>
-    </>
+    <Suspense fallback={<PageSkeleton />}>
+      <ProductsContent params={params} />
+    </Suspense>
   );
 }

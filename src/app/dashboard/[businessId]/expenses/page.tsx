@@ -3,10 +3,10 @@ import type { Metadata } from "next";
 import { requirePageBusiness } from "@/server/page-guards";
 import { listExpensesForBusiness, type Expense } from "@/server/expenses";
 import { formatMoney } from "@/lib/money";
-import { WorkspaceHeader } from "@/features/workspace/workspace-header";
-import { BusinessNav } from "@/features/workspace/business-nav";
+import { PageHeader, PageSkeleton } from "@/features/workspace/page-header";
 import { ExpenseForm } from "@/features/expenses/expense-form";
 import { DeleteExpenseButton } from "@/features/expenses/delete-expense-button";
+import { emptyStateClass, panelClass } from "@/features/auth/ui";
 
 export const metadata: Metadata = { title: "Expenses — Elevate" };
 
@@ -21,22 +21,23 @@ function ExpenseList({
 }) {
   if (expenses.length === 0) {
     return (
-      <p className="rounded-2xl border border-border bg-surface-muted p-6 text-sm text-muted">
+      <p className={emptyStateClass}>
         No expenses recorded yet. Recording all costs keeps your profit figures
         honest.
       </p>
     );
   }
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
-      <table className="w-full text-sm">
+    <div className={`${panelClass} overflow-x-auto`}>
+      <table className="w-full min-w-[640px] text-sm">
+        <caption className="sr-only">Recorded expenses</caption>
         <thead>
-          <tr className="text-xs text-muted">
-            <th className="px-4 py-3 text-left">Date</th>
-            <th className="px-4 py-3 text-left">Category</th>
-            <th className="px-4 py-3 text-left">Description</th>
-            <th className="px-4 py-3 text-right">Amount</th>
-            <th className="px-4 py-3 text-left">
+          <tr className="border-b border-border text-xs text-muted">
+            <th scope="col" className="px-4 py-2.5 text-left font-normal">Date</th>
+            <th scope="col" className="px-4 py-2.5 text-left font-normal">Category</th>
+            <th scope="col" className="px-4 py-2.5 text-left font-normal">Description</th>
+            <th scope="col" className="px-4 py-2.5 text-right font-normal">Amount</th>
+            <th scope="col" className="px-4 py-2.5 text-left font-normal">
               <span className="sr-only">Actions</span>
             </th>
           </tr>
@@ -45,9 +46,9 @@ function ExpenseList({
           {expenses.map((expense) => (
             <tr
               key={expense.expenseId}
-              className={`border-t border-border ${expense.voidedAt ? "text-muted" : ""}`}
+              className={`border-t border-rule first:border-t-0 ${expense.voidedAt ? "text-muted" : ""}`}
             >
-              <td className="px-4 py-3">{expense.date}</td>
+              <td className="px-4 py-3 whitespace-nowrap text-muted">{expense.date}</td>
               <td className="px-4 py-3 font-medium">{expense.category}</td>
               <td className="px-4 py-3 text-muted">
                 {expense.description ?? "—"}
@@ -58,9 +59,9 @@ function ExpenseList({
               >
                 {formatMoney(expense.amount, currency)}
               </td>
-              <td className="px-4 py-3">
+              <td className="px-4 py-3 text-right">
                 {expense.voidedAt ? (
-                  <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium">
+                  <span className="inline-flex flex-none rounded-full bg-surface-muted px-2 py-0.5 text-xs font-medium whitespace-nowrap text-muted">
                     Voided
                   </span>
                 ) : (
@@ -89,17 +90,10 @@ async function ExpensesContent({
 
   return (
     <div className="flex flex-col gap-6">
-      <section>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {business.name} — Expenses
-        </h1>
-        <p className="mt-1 text-sm text-muted">
-          Rent, utilities and other costs. Stock purchases are handled
-          separately in a later phase.
-        </p>
-      </section>
-
-      <BusinessNav businessId={businessId} />
+      <PageHeader
+        title="Expenses"
+        description="Rent, bills, salaries and other running costs. Recording every cost keeps your net profit honest. Stock you buy goes under Purchases."
+      />
       <ExpenseForm
         businessId={businessId}
         currency={business.currency}
@@ -120,13 +114,8 @@ export default function ExpensesPage({
   params: Promise<{ businessId: string }>;
 }) {
   return (
-    <>
-      <WorkspaceHeader />
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8 sm:px-6">
-        <Suspense fallback={<p className="text-sm text-muted">Loading…</p>}>
-          <ExpensesContent params={params} />
-        </Suspense>
-      </main>
-    </>
+    <Suspense fallback={<PageSkeleton />}>
+      <ExpensesContent params={params} />
+    </Suspense>
   );
 }

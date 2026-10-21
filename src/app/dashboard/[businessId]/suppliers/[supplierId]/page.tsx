@@ -1,15 +1,16 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePageBusiness } from "@/server/page-guards";
 import { getSupplierForBusiness } from "@/server/suppliers";
 import { listPurchasesForBusiness } from "@/server/purchases";
 import { ApiError } from "@/server/errors";
-import { WorkspaceHeader } from "@/features/workspace/workspace-header";
-import { BusinessNav } from "@/features/workspace/business-nav";
+import { PageHeader, PageSkeleton } from "@/features/workspace/page-header";
 import { SupplierForm } from "@/features/suppliers/supplier-form";
 import { ArchiveSupplierButton } from "@/features/suppliers/archive-supplier-button";
 import { PurchaseList } from "@/features/purchases/purchase-list";
+import { panelTitleClass } from "@/features/auth/ui";
 
 export const metadata: Metadata = { title: "Supplier — Elevate" };
 
@@ -28,17 +29,26 @@ async function SupplierContent({ params }: { params: Params }) {
   const purchases = await listPurchasesForBusiness(businessId, { supplierId });
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{supplier.name}</h1>
-      <BusinessNav businessId={businessId} />
-      {supplier.archivedAt ? (
-        <p className="text-sm text-muted">This supplier is archived.</p>
-      ) : (
+      <PageHeader
+        eyebrow={
+          <Link href={`/dashboard/${businessId}/suppliers`} className="hover:text-foreground hover:underline">
+            ← Suppliers
+          </Link>
+        }
+        title={supplier.name}
+        description={
+          supplier.archivedAt
+            ? "Archived. Past purchases stay on record."
+            : `${purchases.length} purchase${purchases.length === 1 ? "" : "s"} recorded from this supplier.`
+        }
+      />
+      {supplier.archivedAt ? null : (
         <>
           <SupplierForm businessId={businessId} supplier={supplier} />
           <ArchiveSupplierButton businessId={businessId} supplierId={supplierId} />
         </>
       )}
-      <h2 className="text-base font-semibold">Purchases from this supplier</h2>
+      <h2 className={panelTitleClass}>Purchases from this supplier</h2>
       <PurchaseList purchases={purchases} currency={business.currency} businessId={businessId} />
     </div>
   );
@@ -46,13 +56,8 @@ async function SupplierContent({ params }: { params: Params }) {
 
 export default function SupplierPage({ params }: { params: Params }) {
   return (
-    <>
-      <WorkspaceHeader />
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8 sm:px-6">
-        <Suspense fallback={<p className="text-sm text-muted">Loading…</p>}>
-          <SupplierContent params={params} />
-        </Suspense>
-      </main>
-    </>
+    <Suspense fallback={<PageSkeleton />}>
+      <SupplierContent params={params} />
+    </Suspense>
   );
 }

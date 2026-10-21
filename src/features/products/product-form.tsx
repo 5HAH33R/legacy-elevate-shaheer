@@ -71,7 +71,7 @@ export function ProductForm({
     <form
       onSubmit={onSubmit}
       noValidate
-      className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-6"
+      className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-6"
     >
       <h2 className="text-base font-semibold">Add a product</h2>
       <div className="grid gap-4 sm:grid-cols-2">

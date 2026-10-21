@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { formatMoney, parseMoney, type MinorUnits } from "@/lib/money";
 import { calcPriceScenario, formatRatio } from "@/lib/pricing";
-import { inputClass, labelClass } from "@/features/auth/ui";
+import { AlertIcon } from "@/components/icons";
+import { inputClass, labelClass, secondaryButtonClass } from "@/features/auth/ui";
 
 const MAX_SCENARIOS = 5;
 
@@ -11,13 +12,13 @@ type Row = { id: number; value: string };
 
 function StatusBadge({ status }: { status: "profit" | "break-even" | "loss" }) {
   const map = {
-    profit: { icon: "▲", text: "Profit", cls: "text-success" },
-    "break-even": { icon: "■", text: "Break-even", cls: "text-muted" },
-    loss: { icon: "▼", text: "Loss", cls: "text-danger" },
+    profit: { icon: "+", text: "Profit", cls: "bg-success-bg text-success" },
+    "break-even": { icon: "=", text: "Break-even", cls: "bg-surface-muted text-muted" },
+    loss: { icon: "−", text: "Loss", cls: "bg-danger-bg text-danger" },
   } as const;
   const s = map[status];
   return (
-    <span className={`inline-flex items-center gap-1 font-medium ${s.cls}`}>
+    <span className={`inline-flex flex-none items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ${s.cls}`}>
       <span aria-hidden="true">{s.icon}</span>
       {s.text}
     </span>
@@ -46,7 +47,7 @@ export function PricingCalculator({
   }
 
   return (
-    <section aria-labelledby="pricing-heading" className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5">
+    <section aria-labelledby="pricing-heading" className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5">
       <div>
         <h2 id="pricing-heading" className="text-base font-semibold">Pricing scenarios (not saved)</h2>
         <p className="mt-1 text-sm text-muted">
@@ -55,27 +56,27 @@ export function PricingCalculator({
         </p>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <caption className="sr-only">Pricing scenarios</caption>
           <thead>
-            <tr className="text-xs text-muted">
-              <th className="px-3 py-2 text-left">Selling price</th>
-              <th className="px-3 py-2 text-right">Unit margin</th>
-              <th className="px-3 py-2 text-right">Margin %</th>
-              <th className="px-3 py-2 text-right">Markup %</th>
-              <th className="px-3 py-2 text-left">Result</th>
+            <tr className="border-b border-border text-xs text-muted">
+              <th scope="col" className="py-2 pr-3 text-left font-normal">Selling price</th>
+              <th scope="col" className="px-3 py-2 text-right font-normal">Per unit</th>
+              <th scope="col" className="px-3 py-2 text-right font-normal">Margin</th>
+              <th scope="col" className="px-3 py-2 text-right font-normal">Markup</th>
+              <th scope="col" className="py-2 pl-3 text-right font-normal">Result</th>
             </tr>
           </thead>
           <tbody>
-            <tr className="border-t border-border bg-surface-muted">
-              <td className="px-3 py-2">
+            <tr>
+              <td className="py-2.5 pr-3">
                 {formatMoney(currentPrice, currency)} <span className="text-xs text-muted">(current)</span>
               </td>
-              <td className="px-3 py-2 text-right">{formatMoney(current.unitMargin, currency)}</td>
-              <td className="px-3 py-2 text-right">{formatRatio(current.marginPct)}</td>
-              <td className="px-3 py-2 text-right">{formatRatio(current.markupPct)}</td>
-              <td className="px-3 py-2"><StatusBadge status={current.status} /></td>
+              <td className="px-3 py-2.5 text-right">{formatMoney(current.unitMargin, currency)}</td>
+              <td className="px-3 py-2.5 text-right">{formatRatio(current.marginPct)}</td>
+              <td className="px-3 py-2.5 text-right">{formatRatio(current.markupPct)}</td>
+              <td className="py-2.5 pl-3 text-right"><StatusBadge status={current.status} /></td>
             </tr>
             {rows.map((row, index) => {
               let parsed: MinorUnits | null = null;
@@ -94,8 +95,8 @@ export function PricingCalculator({
               const result = parsed !== null ? calcPriceScenario(parsed, unitCost) : null;
               const inputId = `scenario-${row.id}`;
               return (
-                <tr key={row.id} className="border-t border-border align-top">
-                  <td className="px-3 py-2">
+                <tr key={row.id} className="border-t border-rule align-top">
+                  <td className="py-2 pr-3">
                     <label htmlFor={inputId} className={`${labelClass} sr-only`}>
                       Test price {index + 1}
                     </label>
@@ -111,14 +112,14 @@ export function PricingCalculator({
                     />
                     {error ? (
                       <p id={`${inputId}-err`} role="alert" className="mt-1 text-xs text-danger">
-                        <span aria-hidden="true">⚠ </span>{error}
+                        <AlertIcon size={12} className="mr-1 inline" />{error}
                       </p>
                     ) : null}
                   </td>
-                  <td className="px-3 py-2 text-right">{result ? formatMoney(result.unitMargin, currency) : "—"}</td>
-                  <td className="px-3 py-2 text-right">{result ? formatRatio(result.marginPct) : "—"}</td>
-                  <td className="px-3 py-2 text-right">{result ? formatRatio(result.markupPct) : "—"}</td>
-                  <td className="px-3 py-2">{result ? <StatusBadge status={result.status} /> : <span className="text-muted">—</span>}</td>
+                  <td className="px-3 py-2.5 text-right">{result ? formatMoney(result.unitMargin, currency) : "—"}</td>
+                  <td className="px-3 py-2.5 text-right">{result ? formatRatio(result.marginPct) : "—"}</td>
+                  <td className="px-3 py-2.5 text-right">{result ? formatRatio(result.markupPct) : "—"}</td>
+                  <td className="py-2 pt-4 pl-3 text-right">{result ? <StatusBadge status={result.status} /> : <span className="text-muted">—</span>}</td>
                 </tr>
               );
             })}
@@ -129,7 +130,7 @@ export function PricingCalculator({
       {current.warnings.length > 0 ? (
         <ul className="flex flex-col gap-1 text-sm text-warning">
           {current.warnings.map((w) => (
-            <li key={w}><span aria-hidden="true">⚠ </span>{w}</li>
+            <li key={w} className="flex gap-2"><AlertIcon className="mt-0.5 shrink-0" />{w}</li>
           ))}
         </ul>
       ) : null}
@@ -142,15 +143,15 @@ export function PricingCalculator({
             setRows((prev) => [...prev, { id: nextId, value: "" }]);
             setNextId((n) => n + 1);
           }}
-          className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium disabled:opacity-50"
+          className={secondaryButtonClass}
         >
-          + Add scenario
+          + Add a test price
         </button>
         {rows.length > 1 ? (
           <button
             type="button"
             onClick={() => setRows((prev) => prev.slice(0, -1))}
-            className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium"
+            className={secondaryButtonClass}
           >
             Remove last
           </button>

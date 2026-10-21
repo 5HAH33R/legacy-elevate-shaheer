@@ -4,7 +4,8 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoney } from "@/lib/money";
 import type { AssistantMessage, Conversation } from "@/server/ai/conversations";
-import { errorTextClass, inputClass, labelClass, primaryButtonClass } from "@/features/auth/ui";
+import { AlertIcon, AssistantIcon, InfoIcon } from "@/components/icons";
+import { errorTextClass, inputClass, panelClass, primaryActionClass } from "@/features/auth/ui";
 
 const MAX_QUESTION_LENGTH = 1000;
 
@@ -43,7 +44,7 @@ function FiguresUsed({ message }: { message: AssistantMessage }) {
 function MessageBubble({ message }: { message: AssistantMessage }) {
   if (message.role === "user") {
     return (
-      <li className="self-end max-w-[85%] rounded-2xl bg-primary px-4 py-2 text-sm text-primary-foreground">
+      <li className="max-w-[85%] self-end rounded-xl rounded-br-sm bg-ink-button px-4 py-2.5 text-sm text-ink-button-foreground">
         <span className="sr-only">You asked: </span>
         <p dir="auto" className="whitespace-pre-wrap">
           {message.text}
@@ -52,17 +53,17 @@ function MessageBubble({ message }: { message: AssistantMessage }) {
     );
   }
   return (
-    <li className="max-w-[95%] rounded-2xl border border-border bg-surface-muted px-4 py-3 text-sm">
+    <li className="max-w-[95%] rounded-xl rounded-bl-sm border border-border bg-surface-muted px-4 py-3 text-sm">
       <p className="mb-1 inline-flex items-center gap-1 text-xs font-medium text-muted">
-        <span aria-hidden="true">✦</span>
-        AI-generated answer — check important numbers on your dashboard
+        <AssistantIcon size={14} className="text-chart" />
+        AI-generated — check important numbers on your Overview
       </p>
       <p dir="auto" className="whitespace-pre-wrap leading-relaxed">
         {message.text}
       </p>
       {message.truncated ? (
         <p className="mt-2 text-xs text-warning">
-          <span aria-hidden="true">⚠ </span>This answer was cut short. Ask a narrower question for the rest.
+          <AlertIcon size={12} className="mr-1 inline" />This answer was cut short. Ask a narrower question for the rest.
         </p>
       ) : null}
       <FiguresUsed message={message} />
@@ -131,84 +132,99 @@ export function AssistantChat({
   }
 
   return (
-    <section aria-labelledby="chat-heading" className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5">
-      <h2 id="chat-heading" className="text-base font-semibold">
-        {conversation ? conversation.title : "New conversation"}
-      </h2>
+    <section aria-labelledby="chat-heading" className={`${panelClass} flex min-h-[520px] flex-col`}>
+      <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4 sm:px-6">
+        <h2 id="chat-heading" className="truncate text-base font-semibold" dir="auto">
+          {conversation ? conversation.title : "New conversation"}
+        </h2>
+        {conversation ? (
+          <span className="num shrink-0 text-xs text-muted">
+            {messages.length / 2} of 20 questions
+          </span>
+        ) : null}
+      </div>
 
-      {!configured ? (
-        <p role="status" className="rounded-lg border border-border bg-surface-muted px-3 py-2 text-sm">
-          <span aria-hidden="true">ℹ </span>
-          The AI assistant is not configured yet. Ask the app administrator to add an AI API key. Your
-          dashboard figures are still available on the Summary page.
-        </p>
-      ) : null}
+      <div className="flex flex-1 flex-col gap-4 px-5 py-5 sm:px-6">
+        {!configured ? (
+          <p role="status" className="flex gap-2 rounded-lg border border-warning-border bg-warning-bg px-3 py-2.5 text-sm text-warning">
+            <InfoIcon className="mt-0.5 shrink-0" />
+            The AI assistant is not configured yet. Add an AI API key to the server settings. Your figures are
+            still on the Overview page.
+          </p>
+        ) : null}
 
-      {messages.length === 0 ? (
-        <div>
-          <p className="text-sm text-muted">Try one of these, or ask your own question:</p>
-          <ul className="mt-2 flex flex-wrap gap-2">
-            {EXAMPLE_QUESTIONS.map((q) => (
-              <li key={q}>
-                <button
-                  type="button"
-                  onClick={() => setQuestion(q)}
-                  className="rounded-full border border-border px-3 py-1.5 text-sm hover:bg-surface-muted"
-                  dir="auto"
-                >
-                  {q}
-                </button>
-              </li>
+        {messages.length === 0 ? (
+          <div className="my-auto flex flex-col items-start gap-3 py-6">
+            <p className="flex items-center gap-2 text-sm font-medium">
+              <AssistantIcon className="text-chart" />
+              Start with a question about your business
+            </p>
+            <ul className="flex flex-wrap gap-2">
+              {EXAMPLE_QUESTIONS.map((q) => (
+                <li key={q}>
+                  <button
+                    type="button"
+                    onClick={() => setQuestion(q)}
+                    className="rounded-full border border-border bg-surface px-3 py-1.5 text-sm transition hover:border-control hover:bg-surface-muted"
+                    dir="auto"
+                  >
+                    {q}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <ol aria-label="Messages" className="flex flex-col gap-3">
+            {messages.map((m) => (
+              <MessageBubble key={m.messageId} message={m} />
             ))}
-          </ul>
-        </div>
-      ) : (
-        <ol aria-label="Messages" className="flex flex-col gap-3">
-          {messages.map((m) => (
-            <MessageBubble key={m.messageId} message={m} />
-          ))}
-        </ol>
-      )}
+          </ol>
+        )}
 
-      {pending ? (
-        <p role="status" className="text-sm text-muted">
-          <span aria-hidden="true">… </span>Checking your records and writing an answer…
-        </p>
-      ) : null}
+        {pending ? (
+          <p role="status" className="flex items-center gap-2 text-sm text-muted">
+            <span aria-hidden="true" className="size-2 animate-pulse rounded-full bg-chart" />
+            Checking your records and writing an answer…
+          </p>
+        ) : null}
+      </div>
 
-      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
-        <label htmlFor="assistant-question" className={labelClass}>
+      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-2 border-t border-border px-5 py-4 sm:px-6">
+        <label htmlFor="assistant-question" className="sr-only">
           Your question
         </label>
-        <textarea
-          id="assistant-question"
-          rows={3}
-          maxLength={MAX_QUESTION_LENGTH}
-          dir="auto"
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              event.currentTarget.form?.requestSubmit();
-            }
-          }}
-          className={inputClass}
-          placeholder="Mera is mahine ka profit kitna hua?"
-          disabled={!configured || pending}
-        />
+        <div className="flex items-end gap-2">
+          <textarea
+            id="assistant-question"
+            rows={2}
+            maxLength={MAX_QUESTION_LENGTH}
+            dir="auto"
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                event.currentTarget.form?.requestSubmit();
+              }
+            }}
+            className={`${inputClass} h-auto min-h-[64px] resize-none py-2.5`}
+            placeholder="Mera is mahine ka profit kitna hua?"
+            disabled={!configured || pending}
+          />
+          <button type="submit" disabled={!configured || pending} className={`${primaryActionClass} h-10 disabled:cursor-not-allowed disabled:opacity-60`}>
+            {pending ? "Thinking…" : "Ask"}
+          </button>
+        </div>
         {error ? (
-          <p role="alert" className={errorTextClass}>
-            <span aria-hidden="true">⚠ </span>
+          <p role="alert" className={`${errorTextClass} flex items-center gap-2`}>
+            <AlertIcon className="shrink-0" />
             {error}
           </p>
         ) : null}
-        <button type="submit" disabled={!configured || pending} className={primaryButtonClass}>
-          {pending ? "Thinking…" : "Ask"}
-        </button>
         <p className="text-xs text-muted">
-          Answers are estimates and suggestions, not professional accounting, tax or legal advice. Only the
-          figures needed for an answer are sent to the AI service.
+          Enter to send, Shift+Enter for a new line. Answers are estimates and suggestions, not accounting, tax or
+          legal advice. Only the figures an answer needs are sent to the AI service.
         </p>
       </form>
     </section>

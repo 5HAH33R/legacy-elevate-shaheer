@@ -50,7 +50,7 @@ export function SaleForm({
 
   if (products.length === 0) {
     return (
-      <p className="rounded-2xl border border-border bg-surface-muted p-6 text-sm text-muted">
+      <p className="rounded-xl border border-border bg-surface-muted p-6 text-sm text-muted">
         Add products first — sales are recorded against your stock.{" "}
         <Link
           href={`/dashboard/${businessId}/products`}
@@ -124,7 +124,7 @@ export function SaleForm({
     <form
       onSubmit={onSubmit}
       noValidate
-      className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-6"
+      className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-6"
     >
       <h2 className="text-base font-semibold">Record a sale</h2>
 

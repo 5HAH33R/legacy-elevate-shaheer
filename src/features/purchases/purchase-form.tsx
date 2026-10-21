@@ -43,7 +43,7 @@ export function PurchaseForm({
 
   if (suppliers.length === 0 || products.length === 0) {
     return (
-      <p className="rounded-2xl border border-border bg-surface-muted p-6 text-sm text-muted">
+      <p className="rounded-xl border border-border bg-surface-muted p-6 text-sm text-muted">
         Add at least one supplier and one product before recording a purchase.{" "}
         <Link href={`/dashboard/${businessId}/suppliers`} className="font-medium text-foreground underline underline-offset-4">
           Suppliers
@@ -99,7 +99,7 @@ export function PurchaseForm({
     <form
       onSubmit={onSubmit}
       noValidate
-      className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 sm:p-6"
+      className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-4 sm:p-6"
     >
       <h2 className="text-base font-semibold">Record a purchase</h2>
       <div className="grid gap-4 sm:grid-cols-2">

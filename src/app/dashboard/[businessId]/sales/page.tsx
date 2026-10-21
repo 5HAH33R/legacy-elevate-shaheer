@@ -4,42 +4,48 @@ import { requirePageBusiness } from "@/server/page-guards";
 import { listProductsForBusiness } from "@/server/products";
 import { listSalesForBusiness, type Sale } from "@/server/sales";
 import { formatMoney } from "@/lib/money";
-import { WorkspaceHeader } from "@/features/workspace/workspace-header";
-import { BusinessNav } from "@/features/workspace/business-nav";
+import { PageHeader, PageSkeleton } from "@/features/workspace/page-header";
 import { SaleForm } from "@/features/sales/sale-form";
+import { emptyStateClass, panelClass, panelTitleClass } from "@/features/auth/ui";
 
 export const metadata: Metadata = { title: "Sales — Elevate" };
 
 function SaleList({ sales, currency }: { sales: Sale[]; currency: string }) {
   if (sales.length === 0) {
     return (
-      <p className="rounded-2xl border border-border bg-surface-muted p-6 text-sm text-muted">
+      <p className={emptyStateClass}>
         No sales recorded yet. Confirmed sales appear here with their exact
         totals.
       </p>
     );
   }
   return (
-    <ul className="flex flex-col gap-3">
-      {sales.map((sale) => (
-        <li
-          key={sale.saleId}
-          className="flex flex-col gap-1 rounded-2xl border border-border bg-surface p-4 text-sm"
-        >
-          <div className="flex items-center justify-between gap-4">
-            <span className="font-medium">{sale.date}</span>
-            <span className="font-semibold">
+    <section aria-labelledby="sales-heading" className={panelClass}>
+      <div className="flex items-baseline justify-between gap-3 px-5 pt-5 pb-2 sm:px-6">
+        <h2 id="sales-heading" className={panelTitleClass}>Recorded sales</h2>
+        <span className="num text-sm text-muted">{sales.length}</span>
+      </div>
+      <ul>
+        {sales.map((sale) => (
+          <li
+            key={sale.saleId}
+            className="flex items-start justify-between gap-4 border-t border-rule px-5 py-3 text-sm first:border-t-0 sm:px-6"
+          >
+            <div className="min-w-0">
+              <p className="truncate font-medium">
+                {sale.items
+                  .map((item) => `${item.quantity} × ${item.name}`)
+                  .join(", ")}
+              </p>
+              <p className="num mt-0.5 text-xs text-muted">{sale.date}</p>
+            </div>
+            <span className="num shrink-0 font-semibold">
               {formatMoney(sale.total, currency)}
             </span>
-          </div>
-          <p className="text-muted">
-            {sale.items
-              .map((item) => `${item.quantity} × ${item.name}`)
-              .join(", ")}
-          </p>
-        </li>
-      ))}
-    </ul>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -57,17 +63,11 @@ async function SalesContent({
 
   return (
     <div className="flex flex-col gap-6">
-      <section>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {business.name} — Sales
-        </h1>
-        <p className="mt-1 text-sm text-muted">
-          Recording a sale deducts stock immediately. Totals are calculated on
-          the server.
-        </p>
-      </section>
+      <PageHeader
+        title="Sales"
+        description="Recording a sale takes the items out of stock straight away. Totals are calculated by Elevate, not typed in."
+      />
 
-      <BusinessNav businessId={businessId} />
       <SaleForm
         businessId={businessId}
         currency={business.currency}
@@ -90,13 +90,8 @@ export default function SalesPage({
   params: Promise<{ businessId: string }>;
 }) {
   return (
-    <>
-      <WorkspaceHeader />
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8 sm:px-6">
-        <Suspense fallback={<p className="text-sm text-muted">Loading…</p>}>
-          <SalesContent params={params} />
-        </Suspense>
-      </main>
-    </>
+    <Suspense fallback={<PageSkeleton />}>
+      <SalesContent params={params} />
+    </Suspense>
   );
 }

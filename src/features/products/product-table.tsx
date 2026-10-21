@@ -4,7 +4,8 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatMoney, minorToDecimalString } from "@/lib/money";
-import { errorTextClass, inputClass } from "@/features/auth/ui";
+import { AlertIcon } from "@/components/icons";
+import { emptyStateClass, errorTextClass, inputClass, panelClass } from "@/features/auth/ui";
 
 export type ProductRow = {
   productId: string;
@@ -16,7 +17,10 @@ export type ProductRow = {
   reorderLevel: number | null;
 };
 
-const cellClass = "px-4 py-3 text-left align-top";
+const cellClass = "px-4 py-3 text-left align-middle";
+const numClass = "px-4 py-3 text-right align-middle";
+const headClass = "px-4 py-2.5 text-left font-normal";
+const numHeadClass = "px-4 py-2.5 text-right font-normal";
 const editInputClass = `${inputClass} w-28`;
 
 function isLow(p: ProductRow): boolean {
@@ -77,7 +81,7 @@ function EditRow({
   }
 
   return (
-    <tr className="border-t border-border bg-surface-muted">
+    <tr className="border-t border-rule bg-surface-muted">
       <td colSpan={7} className="px-4 py-3">
         <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
           <div className="flex flex-wrap items-end gap-3">
@@ -102,10 +106,10 @@ function EditRow({
               <input type="number" min={0} step={1} value={reorderLevel} onChange={(e) => setReorderLevel(e.target.value)} className={editInputClass} />
             </label>
             <div className="flex gap-2">
-              <button type="submit" disabled={pending} className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60">
+              <button type="submit" disabled={pending} className="h-10 rounded-lg bg-ink-button px-4 text-sm font-semibold text-ink-button-foreground disabled:opacity-60">
                 {pending ? "Saving…" : "Save"}
               </button>
-              <button type="button" onClick={onDone} className="rounded-lg border border-border px-3 py-2 text-xs font-medium">
+              <button type="button" onClick={onDone} className="h-10 rounded-lg border border-control bg-surface px-4 text-sm font-medium">
                 Cancel
               </button>
             </div>
@@ -131,24 +135,25 @@ export function ProductTable({
 
   if (products.length === 0) {
     return (
-      <p className="rounded-2xl border border-border bg-surface-muted p-6 text-sm text-muted">
+      <p className={emptyStateClass}>
         No products yet. Add your first product above to start tracking stock.
       </p>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
-      <table className="w-full text-sm">
+    <div className={`${panelClass} overflow-x-auto`}>
+      <table className="w-full min-w-[720px] text-sm">
+        <caption className="sr-only">Products and stock</caption>
         <thead>
-          <tr className="text-xs text-muted">
-            <th className={cellClass}>Name</th>
-            <th className={cellClass}>SKU</th>
-            <th className={cellClass}>Stock</th>
-            <th className={cellClass}>Unit cost</th>
-            <th className={cellClass}>Price</th>
-            <th className={cellClass}>Alert at</th>
-            <th className={cellClass}>
+          <tr className="border-b border-border text-xs text-muted">
+            <th scope="col" className={`${headClass} w-[34%]`}>Product</th>
+            <th scope="col" className={headClass}>SKU</th>
+            <th scope="col" className={numHeadClass}>In stock</th>
+            <th scope="col" className={numHeadClass}>Unit cost</th>
+            <th scope="col" className={numHeadClass}>Price</th>
+            <th scope="col" className={numHeadClass}>Alert at</th>
+            <th scope="col" className={headClass}>
               <span className="sr-only">Actions</span>
             </th>
           </tr>
@@ -163,35 +168,42 @@ export function ProductTable({
                 onDone={() => setEditingId(null)}
               />
             ) : (
-              <tr key={product.productId} className="border-t border-border">
-                <td className={`${cellClass} font-medium`}>{product.name}</td>
-                <td className={`${cellClass} text-muted`}>{product.sku ?? "—"}</td>
+              <tr key={product.productId} className="border-t border-rule transition hover:bg-surface-muted/60">
                 <td className={cellClass}>
-                  {product.quantity}
+                  <Link
+                    href={`/dashboard/${businessId}/products/${product.productId}`}
+                    className="font-medium hover:underline"
+                  >
+                    {product.name}
+                  </Link>
+                </td>
+                <td className={`${cellClass} text-muted`}>{product.sku ?? "—"}</td>
+                <td className={numClass}>
                   {isLow(product) ? (
-                    <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-warning px-2 py-0.5 text-xs font-medium text-warning">
-                      <span aria-hidden="true">⚠</span> Low stock
+                    <span className="mr-2 inline-flex flex-none items-center gap-1 rounded-full border border-warning-border bg-warning-bg px-2 py-0.5 text-xs font-medium whitespace-nowrap text-warning">
+                      <AlertIcon size={12} /> Low
                     </span>
                   ) : null}
+                  <span className="font-medium">{product.quantity}</span>
                 </td>
-                <td className={cellClass}>{formatMoney(product.unitCost, currency)}</td>
-                <td className={cellClass}>{formatMoney(product.sellingPrice, currency)}</td>
-                <td className={`${cellClass} text-muted`}>
+                <td className={`${numClass} text-muted`}>{formatMoney(product.unitCost, currency)}</td>
+                <td className={numClass}>{formatMoney(product.sellingPrice, currency)}</td>
+                <td className={`${numClass} text-muted`}>
                   {product.reorderLevel ?? "—"}
                 </td>
-                <td className={cellClass}>
+                <td className={`${cellClass} whitespace-nowrap text-right`}>
                   <button
                     type="button"
                     onClick={() => setEditingId(product.productId)}
-                    className="text-xs font-medium underline underline-offset-4 hover:text-muted"
+                    className="text-sm font-medium hover:underline"
                   >
                     Edit
                   </button>
                   <Link
                     href={`/dashboard/${businessId}/products/${product.productId}`}
-                    className="ml-3 text-xs font-medium underline underline-offset-4 hover:text-muted"
+                    className="ml-4 text-sm font-medium text-muted hover:text-foreground hover:underline"
                   >
-                    Stock
+                    Stock &amp; pricing
                   </Link>
                 </td>
               </tr>

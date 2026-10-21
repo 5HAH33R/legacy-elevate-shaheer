@@ -14,14 +14,15 @@ async function OnboardingContent() {
   const businesses = await listBusinessesForUser(user.uid);
   if (businesses.length > 0) redirect("/dashboard");
   return (
-    <section className="rounded-2xl border border-border bg-surface p-6 sm:p-8">
+    <section>
       <h1 className="text-2xl font-semibold tracking-tight">
         Set up your business
       </h1>
-      <p className="mt-1 text-sm text-muted">
-        This creates your private workspace. Only you can access it.
+      <p className="mt-1.5 text-sm text-muted">
+        This creates your private workspace. Only you can access it, and you
+        can change these details later.
       </p>
-      <div className="mt-6">
+      <div className="mt-8 rounded-xl border border-border bg-surface p-6 sm:p-7">
         <OnboardingForm />
       </div>
     </section>
@@ -32,7 +33,7 @@ export default function OnboardingPage() {
   return (
     <>
       <WorkspaceHeader />
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 py-8 sm:px-6">
+      <main className="mx-auto flex w-full max-w-[460px] flex-1 flex-col px-4 pt-10 pb-16 sm:pt-16">
         <Suspense fallback={<p className="text-sm text-muted">Loading…</p>}>
           <OnboardingContent />
         </Suspense>
