@@ -14,6 +14,7 @@ export function BusinessNav({ businessId }: { businessId: string }) {
     { href: `${base}/expenses`, label: "Expenses" },
     { href: `${base}/suppliers`, label: "Suppliers" },
     { href: `${base}/purchases`, label: "Purchases" },
+    { href: `${base}/assistant`, label: "Assistant" },
   ];
 
   return (

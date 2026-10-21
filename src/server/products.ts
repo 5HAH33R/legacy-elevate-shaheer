@@ -153,7 +153,13 @@ export async function updateProductForBusiness(
   };
   if (input.name !== undefined) updates.name = input.name;
   if (input.sku !== undefined) updates.sku = input.sku;
-  if (input.unitCost !== undefined) updates.unitCost = input.unitCost;
+  if (input.unitCost !== undefined) {
+    updates.unitCost = input.unitCost;
+    // A manual cost edit replaces the purchase-derived cost, so drop its
+    // provenance; the product page then says "entered manually".
+    updates.costUpdatedFromPurchaseDate = null;
+    updates.costUpdatedFromPurchaseId = null;
+  }
   if (input.sellingPrice !== undefined) updates.sellingPrice = input.sellingPrice;
   if (input.reorderLevel !== undefined) updates.reorderLevel = input.reorderLevel;
   await db.collection("products").doc(productId).update(updates);

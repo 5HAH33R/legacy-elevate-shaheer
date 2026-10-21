@@ -43,7 +43,23 @@ All figures are deterministic (pure functions in `src/lib/`, no AI), money is in
 
 Tests: `src/lib/{periods,pricing,reports,restock,supplier-comparison}.test.ts` and `tests/reports.test.ts` (cross-business isolation).
 
-Invoices and the AI assistant come in later phases.
+### Phase 6: grounded AI business assistant
+
+**Assistant** (`/dashboard/[businessId]/assistant`): the owner asks questions in English, Urdu or Roman Urdu ("Mera profit kitna hua?") and gets an answer from a real hosted model (Google Gemini, `gemini-3.5-flash-lite` by default) grounded in their own records.
+
+- **Request flow** (SPEC 8.1): `POST /api/businesses/[businessId]/ai/chat` runs `requireUser()` → `requireBusinessOwner()` before reading any data or calling the model. Another owner's business or conversation → 404 and the model is never called.
+- **Grounding**: `src/server/ai/context.ts` loads the business's records once and builds this month's and last month's summary with the **same functions as the dashboard** (`buildDashboardReport`), plus top products, low-stock/restock estimates and up to 40 products (name, stock, selling price, alert level). Money is pre-formatted, so the model only quotes numbers and never calculates them. Data warnings (no expenses, zero-cost items…) are passed through.
+- **What is sent to the AI service**: business name/type, currency, today's date, those figures and product names. Never owner id, email, supplier details, purchase lines, document ids or other businesses' data.
+- **System prompt** (`src/server/ai/prompt.ts`): quote figures exactly, say when data is missing, label facts vs estimates vs suggestions, no guarantees or professional advice, never claim to change records, answer in the question's language (detected by `src/lib/language.ts`).
+- **Read-only**: the assistant writes only `aiConversations` and `aiUsage`; it cannot change products, sales, expenses or purchases.
+- **Saved answers**: every question + answer is saved in `aiConversations` (top-level, `businessId` + `ownerId`, messages array capped at 40) with a snapshot of the figures used, so it is still there after signing out and in again. Owners can open and delete their conversations. Only the owner can read them.
+- **Limits and failures**: `AI_DAILY_LIMIT` questions per user per day (default 30, counted in `aiUsage/{uid}_{date}`) protects the free quota → 429. No `AI_API_KEY` → "not configured" (503), never a fake answer. Provider 5xx/network errors are retried once; quota → 429; blocked → 422; empty/malformed → 502. Error messages and logs never contain the key, prompt or business data.
+
+Set up: create a free key at [Google AI Studio](https://aistudio.google.com/apikey) and put it in `.env.local` as `AI_API_KEY` (see `.env.example`). On the free tier Google may use requests to improve its products; see [AI_DISCLOSURE.md](AI_DISCLOSURE.md).
+
+Tests: `tests/ai-assistant.test.ts` (auth, cross-business isolation, figures match the dashboard, saved conversations, no record writes, failures, rate limit) and `src/lib/language.test.ts`. The AI provider is stubbed in tests; no network calls.
+
+Invoices come in a later phase.
 
 ## How authentication works
 
@@ -101,7 +117,7 @@ Also enable **Email/Password** under Firebase console → Authentication → Sig
 
 ## Stack
 
-Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Firebase Authentication, Cloud Firestore, Cloud Storage for Firebase, Vitest. The AI provider and hosting are still to be decided (SPEC.md section 10).
+Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Firebase Authentication, Cloud Firestore, Cloud Storage for Firebase, Vitest. AI: Google Gemini API via REST (free tier). Hosting is still to be decided (SPEC.md section 10).
 
 ## Security notes
 

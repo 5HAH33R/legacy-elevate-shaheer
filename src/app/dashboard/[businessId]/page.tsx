@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { requirePageBusiness } from "@/server/page-guards";
-import { listProductsForBusiness } from "@/server/products";
 import { getDashboardReport } from "@/server/reports";
 import { todayInTimeZone } from "@/lib/dates";
 import { resolvePeriod } from "@/lib/periods";
@@ -32,13 +31,7 @@ async function BusinessSummary({
   const business = await requirePageBusiness(businessId);
   const today = todayInTimeZone(business.timezone);
   const { period, error } = resolvePeriod(query, today);
-  const [report, products] = await Promise.all([
-    getDashboardReport(businessId, period, today),
-    listProductsForBusiness(businessId),
-  ]);
-  const reorderLevels = Object.fromEntries(
-    products.map((p) => [p.productId, p.reorderLevel]),
-  );
+  const report = await getDashboardReport(businessId, period, today);
 
   return (
     <div className="flex flex-col gap-6">
@@ -60,7 +53,7 @@ async function BusinessSummary({
       <TrendTable trend={report.trend} currency={business.currency} />
       <RestockSection
         restock={report.restock}
-        reorderLevels={reorderLevels}
+        reorderLevels={report.reorderLevels}
         productCount={report.productCount}
       />
     </div>
