@@ -46,6 +46,9 @@ export type Product = {
   unitCost: MinorUnits;
   sellingPrice: MinorUnits;
   reorderLevel: number | null;
+  /** Cost provenance: set when a purchase last updated unitCost (Phase 4). */
+  costUpdatedFromPurchaseDate: string | null;
+  costUpdatedFromPurchaseId: string | null;
   createdAt: string | null;
   updatedAt: string | null;
 };
@@ -61,6 +64,8 @@ function serializeProduct(id: string, data: DocumentData): Product {
     sellingPrice: toNumber(data.sellingPrice),
     reorderLevel:
       typeof data.reorderLevel === "number" ? data.reorderLevel : null,
+    costUpdatedFromPurchaseDate: toNullableString(data.costUpdatedFromPurchaseDate),
+    costUpdatedFromPurchaseId: toNullableString(data.costUpdatedFromPurchaseId),
     createdAt: toIso(data.createdAt),
     updatedAt: toIso(data.updatedAt),
   };
@@ -115,6 +120,8 @@ export async function createProductForBusiness(
     unitCost: input.unitCost,
     sellingPrice: input.sellingPrice,
     reorderLevel: input.reorderLevel ?? null,
+    costUpdatedFromPurchaseDate: null,
+    costUpdatedFromPurchaseId: null,
     createdAt: null,
     updatedAt: null,
   };
