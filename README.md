@@ -23,6 +23,26 @@ Phase 4 adds **suppliers** and **purchases** (`/dashboard/[businessId]/suppliers
 - Price history is listed on the product and supplier pages (data only, no comparison logic).
 - Purchase lists filter by date and supplier in memory on a single-field `businessId` query, so no composite index is needed at MVP scale.
 
+### Phase 5: reporting, pricing and supplier comparison
+
+All figures are deterministic (pure functions in `src/lib/`, no AI), money is integer minor units, and dates are `YYYY-MM-DD` in the business time zone (default Asia/Karachi).
+
+**Dashboard** (`/dashboard/[businessId]?period=…`): a plain GET form picks `this-month` (to date), `last-month`, `last-30-days` or `custom` (`from`/`to`, max 366 days). Invalid input shows the validation message and falls back to this month.
+
+- Revenue = Σ sale totals in the period.
+- COGS = revenue − gross profit; gross profit = Σ (unit price − unit cost) × qty using the unit cost **snapshotted on each sale line at sale time**.
+- Gross margin = gross profit ÷ revenue (shown as "Not calculable" when revenue is 0).
+- Recorded expenses = non-voided expenses in the period.
+- **Estimated net profit (recorded expenses only)** = gross profit − recorded expenses. It is an estimate, not complete net profit; warnings are shown for no sales, no expenses, zero-cost items and voided purchases.
+- Trend: daily buckets for ranges ≤ 31 days, else Monday-start weekly buckets; "not enough data" when fewer than 2 buckets have activity. Shown as a table (no chart library).
+- **Restock estimate** (low-stock products only) = ceil(units sold in last 30 days ÷ 30 × 14) + reorder level − current stock, never below 0. Needs sales on at least 3 different days in the last 30, otherwise "insufficient sales history".
+
+**Product page**: the pricing calculator is client-side what-if only (nothing saved): margin % = (price − cost) ÷ price, markup % = (price − cost) ÷ cost, "Not calculable" when the divisor is 0. Cost basis is the product's unit cost, labelled "updated from purchase on <date>" or "entered manually".
+
+**Supplier price comparison** uses only your own non-voided purchases (never market prices). Prices are compared per unit (case-insensitive: `pcs` = `PCS`; `kg` separate). Latest price per supplier, min/max/mean/median are shown with supplier and date. Outlier: more than 50% away from the group median, checked only with ≥ 3 purchases. A group is flagged "limited data" with one supplier or < 3 purchases, and "stale" when its newest price is over 180 days old.
+
+Tests: `src/lib/{periods,pricing,reports,restock,supplier-comparison}.test.ts` and `tests/reports.test.ts` (cross-business isolation).
+
 Invoices and the AI assistant come in later phases.
 
 ## How authentication works

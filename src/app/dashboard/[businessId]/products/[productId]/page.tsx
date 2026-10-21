@@ -5,6 +5,10 @@ import { requirePageBusiness } from "@/server/page-guards";
 import { getProductForBusiness } from "@/server/products";
 import { listMovementsForProduct } from "@/server/inventory";
 import { listPurchasesForProduct } from "@/server/purchases";
+import { getSupplierComparisonForProduct } from "@/server/reports";
+import { todayInTimeZone } from "@/lib/dates";
+import { PricingCalculator } from "@/features/pricing/pricing-calculator";
+import { PriceComparison } from "@/features/suppliers/price-comparison";
 import { formatMoney } from "@/lib/money";
 import { ApiError } from "@/server/errors";
 import { WorkspaceHeader } from "@/features/workspace/workspace-header";
@@ -25,14 +29,17 @@ async function ProductContent({ params }: { params: Params }) {
     if (error instanceof ApiError) notFound();
     throw error;
   }
-  const [movements, allPurchases, suppliersNote] = await Promise.all([
+  const [movements, allPurchases, comparison] = await Promise.all([
     listMovementsForProduct(businessId, productId),
     listPurchasesForProduct(businessId, productId),
-    Promise.resolve(null),
+    getSupplierComparisonForProduct(
+      businessId,
+      productId,
+      todayInTimeZone(business.timezone),
+    ),
   ]);
-  void suppliersNote;
   const purchases = allPurchases.filter((p) => !p.voidedAt);
-  const lastCostDate = purchases[0]?.date ?? null;
+  const lastCostDate = product.costUpdatedFromPurchaseDate;
 
   return (
     <div className="flex flex-col gap-6">
@@ -42,14 +49,21 @@ async function ProductContent({ params }: { params: Params }) {
           In stock: <strong>{product.quantity}</strong>. Every change is recorded
           below.
         </p>
-        {lastCostDate ? (
-          <p className="mt-1 text-sm text-muted">
-            Cost {formatMoney(product.unitCost, business.currency)} — cost updated
-            from purchase on {lastCostDate}.
-          </p>
-        ) : null}
+        <p className="mt-1 text-sm text-muted">
+          Cost basis: {formatMoney(product.unitCost, business.currency)} —{" "}
+          {lastCostDate
+            ? `updated from purchase on ${lastCostDate}`
+            : "entered manually"}
+          . Selling price {formatMoney(product.sellingPrice, business.currency)}.
+        </p>
       </section>
       <BusinessNav businessId={businessId} />
+      <PricingCalculator
+        unitCost={product.unitCost}
+        currentPrice={product.sellingPrice}
+        currency={business.currency}
+      />
+      <PriceComparison comparison={comparison} currency={business.currency} />
       <StockAdjustForm businessId={businessId} productId={productId} />
       <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
         <table className="w-full text-sm">
