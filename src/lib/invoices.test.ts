@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { normalizeExtraction, parseInvoiceAmount, suggestMatch, type RawExtraction } from "./invoices";
+import {
+  isLineArithmeticValid,
+  normalizeExtraction,
+  parseInvoiceAmount,
+  parseInvoiceType,
+  resolveInvoiceType,
+  suggestMatch,
+  type RawExtraction,
+} from "./invoices";
 
 const TODAY = "2026-10-22";
 
@@ -50,6 +58,9 @@ describe("normalizeExtraction", () => {
       unit: "pcs",
       unitPrice: 148000,
       lineTotal: 1480000,
+      matchedProductId: null,
+      suggestedCategory: null,
+      arithmeticValid: true,
     });
   });
 
@@ -159,5 +170,65 @@ describe("suggestMatch", () => {
   it("returns null for an empty or unknown name", () => {
     expect(suggestMatch("", products)).toBeNull();
     expect(suggestMatch("Washing powder", products)).toBeNull();
+  });
+});
+
+describe("invoice types", () => {
+  it("defaults to purchase and treats a missing stored type as purchase", () => {
+    expect(normalizeExtraction(clean(), TODAY).invoiceType).toBe("purchase");
+    expect(resolveInvoiceType(undefined)).toBe("purchase");
+    expect(resolveInvoiceType("sale")).toBe("sale");
+    expect(parseInvoiceType("refund")).toBeNull();
+  });
+
+  it("marks a line whose arithmetic fails and keeps the flag per line", () => {
+    const x = normalizeExtraction(
+      clean({
+        lines: [
+          { description: "Rice", quantity: 3, unit: "kg", unitPrice: "200", lineTotal: "900" },
+          { description: "Tea", quantity: 2, unit: "pcs", unitPrice: "50", lineTotal: "100" },
+        ],
+        subtotal: "1000",
+        total: "1000",
+      }),
+      TODAY,
+    );
+    expect(x.lines.map((l) => l.arithmeticValid)).toEqual([false, true]);
+    expect(isLineArithmeticValid(null, 100, 100)).toBe(true);
+  });
+
+  it("reads a sale: customer, payment, discount; no supplier", () => {
+    const x = normalizeExtraction(
+      {
+        isInvoice: true,
+        supplierName: "Should be ignored",
+        customerName: " Ali  Khan ",
+        paymentMethod: "Cash",
+        discountAmount: "50",
+        invoiceDate: "2026-10-20",
+        lines: [{ description: "Sugar 1kg", quantity: 2, unitPrice: "150", lineTotal: "300", suggestedCategory: "Grocery" }],
+        total: "250",
+        unclearFields: ["Receipt number is torn"],
+      },
+      TODAY,
+      "sale",
+    );
+    expect(x).toMatchObject({
+      invoiceType: "sale",
+      supplierName: null,
+      customerName: "Ali Khan",
+      paymentMethod: "cash",
+      discountAmount: 5000,
+      unclearFields: ["Receipt number is torn"],
+    });
+    expect(x.lines[0].suggestedCategory).toBe("Grocery");
+    // Total is net of the discount, so the sum check must not complain.
+    expect(x.issues.map((i) => i.field)).toEqual(["unclear"]);
+  });
+
+  it("flags a missing payment type on a sale instead of guessing", () => {
+    const x = normalizeExtraction({ isInvoice: true, invoiceDate: TODAY, lines: [], paymentMethod: "barter" }, TODAY, "sale");
+    expect(x.paymentMethod).toBeNull();
+    expect(x.issues.some((i) => i.field === "payment")).toBe(true);
   });
 });

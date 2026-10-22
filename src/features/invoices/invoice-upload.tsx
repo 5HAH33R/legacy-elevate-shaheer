@@ -12,7 +12,15 @@ const ACCEPT = ".jpg,.jpeg,.png,.webp,.pdf";
  * Upload one invoice photo or PDF. The server reads it with the AI and
  * opens the review screen; nothing is recorded until the owner confirms.
  */
-export function InvoiceUpload({ businessId, configured }: { businessId: string; configured: boolean }) {
+export function InvoiceUpload({
+  businessId,
+  configured,
+  invoiceType = "purchase",
+}: {
+  businessId: string;
+  configured: boolean;
+  invoiceType?: "purchase" | "sale";
+}) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -46,6 +54,7 @@ export function InvoiceUpload({ businessId, configured }: { businessId: string; 
     try {
       const body = new FormData();
       body.append("file", file);
+      body.append("invoiceType", invoiceType);
       const response = await fetch(`/api/businesses/${businessId}/invoices`, { method: "POST", body });
       const data = (await response.json().catch(() => null)) as { invoice?: { invoiceId: string }; error?: string } | null;
       if (!response.ok || !data?.invoice) throw new Error(data?.error ?? "Could not read this invoice. Please try again.");

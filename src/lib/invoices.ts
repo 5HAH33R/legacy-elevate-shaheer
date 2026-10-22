@@ -21,6 +21,28 @@ export type InvoiceMimeType = (typeof INVOICE_MIME_TYPES)[number];
 export const MAX_INVOICE_BYTES = 4 * 1024 * 1024;
 export const MAX_INVOICE_LINES = 50;
 
+/** Purchase = supplier bill (stock in). Sale = customer receipt (stock out). */
+export const INVOICE_TYPES = ["purchase", "sale"] as const;
+export type InvoiceType = (typeof INVOICE_TYPES)[number];
+
+export const PAYMENT_METHODS = ["cash", "online", "credit"] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+/** Stored documents with no invoiceType predate sales receipts: they are purchases. */
+export function resolveInvoiceType(value: unknown): InvoiceType {
+  return value === "sale" ? "sale" : "purchase";
+}
+
+/** Strict parse for user input (form field / query string); null when absent or invalid. */
+export function parseInvoiceType(value: unknown): InvoiceType | null {
+  return value === "purchase" || value === "sale" ? value : null;
+}
+
+export function resolvePaymentMethod(value: unknown): PaymentMethod | null {
+  const v = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return (PAYMENT_METHODS as readonly string[]).includes(v) ? (v as PaymentMethod) : null;
+}
+
 const amount = z.union([z.string(), z.number()]).nullable().optional();
 const text = z.string().nullable().optional();
 
@@ -28,9 +50,11 @@ const text = z.string().nullable().optional();
 export const rawExtractionSchema = z.object({
   isInvoice: z.boolean().optional(),
   supplierName: text,
+  customerName: text,
   invoiceNumber: text,
   invoiceDate: text,
   currency: text,
+  paymentMethod: text,
   lines: z
     .array(
       z.object({
@@ -39,37 +63,58 @@ export const rawExtractionSchema = z.object({
         unit: text,
         unitPrice: amount,
         lineTotal: amount,
+        suggestedCategory: text,
       }),
     )
     .nullable()
     .optional(),
   subtotal: amount,
   tax: amount,
+  discountAmount: amount,
   total: amount,
+  /** Fields the model could not read. "unclear" is the older key, still accepted. */
+  unclearFields: z.array(z.string()).nullable().optional(),
   unclear: z.array(z.string()).nullable().optional(),
 });
 export type RawExtraction = z.infer<typeof rawExtractionSchema>;
 
-export type ExtractedLine = {
+export type ExtractedInvoiceLine = {
   description: string;
   quantity: number | null;
   unit: string;
   unitPrice: MinorUnits | null;
   lineTotal: MinorUnits | null;
+  /** Set by product matching (next phase); null until a product is matched. */
+  matchedProductId: string | null;
+  /** True when no product matched and the owner may add it as a new product. */
+  isNewProduct?: boolean;
+  suggestedCategory?: string | null;
+  /** quantity × unitPrice agrees with lineTotal. Computed in app code, never by the AI. */
+  arithmeticValid: boolean;
 };
+export type ExtractedLine = ExtractedInvoiceLine;
 
 export type InvoiceIssue = { field: string; message: string };
 
 export type ExtractedInvoice = {
+  invoiceType: InvoiceType;
   isInvoice: boolean;
+  /** Purchases: the seller. Always null for sales. */
   supplierName: string | null;
+  /** Sales only. */
+  customerName: string | null;
+  /** Sales only. */
+  paymentMethod: PaymentMethod | null;
+  /** Sales only; integer minor units. */
+  discountAmount: MinorUnits | null;
   invoiceNumber: string | null;
   invoiceDate: string | null;
   currency: string | null;
-  lines: ExtractedLine[];
+  lines: ExtractedInvoiceLine[];
   subtotal: MinorUnits | null;
   tax: MinorUnits | null;
   total: MinorUnits | null;
+  unclearFields: string[];
   issues: InvoiceIssue[];
 };
 
@@ -113,16 +158,43 @@ function closeEnough(a: MinorUnits, b: MinorUnits): boolean {
   return Math.abs(a - b) <= 100;
 }
 
+/**
+ * Deterministic line check: quantity × unitPrice equals the printed line total
+ * (within one currency unit, since printed totals are rounded). A line that
+ * cannot be checked (a value is missing or the quantity is fractional) is not
+ * called wrong here; the missing value is flagged separately.
+ */
+export function isLineArithmeticValid(
+  quantity: number | null,
+  unitPrice: MinorUnits | null,
+  lineTotal: MinorUnits | null,
+): boolean {
+  if (quantity === null || !Number.isInteger(quantity) || unitPrice === null || lineTotal === null) return true;
+  return closeEnough(multiplyMoney(unitPrice, quantity), lineTotal);
+}
+
 /** Normalise the model's output and list every problem a person should check. */
-export function normalizeExtraction(raw: RawExtraction, today: string): ExtractedInvoice {
+export function normalizeExtraction(
+  raw: RawExtraction,
+  today: string,
+  invoiceType: InvoiceType = "purchase",
+): ExtractedInvoice {
   const issues: InvoiceIssue[] = [];
+  const isSale = invoiceType === "sale";
   const isInvoice = raw.isInvoice !== false;
   if (!isInvoice) {
     issues.push({ field: "document", message: "This does not look like an invoice or bill. Check the file." });
   }
 
-  const supplierName = cleanText(raw.supplierName, 120);
-  if (!supplierName) issues.push({ field: "supplier", message: "Supplier name was not found." });
+  // A sale has an optional customer (counter receipts often have none), not a supplier.
+  const supplierName = isSale ? null : cleanText(raw.supplierName, 120);
+  if (!isSale && !supplierName) issues.push({ field: "supplier", message: "Supplier name was not found." });
+  const customerName = isSale ? cleanText(raw.customerName, 120) : null;
+  const paymentMethod = isSale ? resolvePaymentMethod(raw.paymentMethod) : null;
+  if (isSale && !paymentMethod) {
+    issues.push({ field: "payment", message: "Payment type (cash, online or credit) was not found." });
+  }
+  const discountAmount = isSale ? parseInvoiceAmount(raw.discountAmount) : null;
 
   let invoiceDate = cleanText(raw.invoiceDate, 10);
   if (!invoiceDate) {
@@ -134,7 +206,7 @@ export function normalizeExtraction(raw: RawExtraction, today: string): Extracte
     issues.push({ field: "date", message: `Invoice date ${invoiceDate} is in the future. Check it.` });
   }
 
-  const lines: ExtractedLine[] = (raw.lines ?? []).slice(0, MAX_INVOICE_LINES).map((l, i) => {
+  const lines: ExtractedInvoiceLine[] = (raw.lines ?? []).slice(0, MAX_INVOICE_LINES).map((l, i) => {
     const n = i + 1;
     const description = cleanText(l.description, 120) ?? "";
     const quantity = parseQuantity(l.quantity);
@@ -146,20 +218,27 @@ export function normalizeExtraction(raw: RawExtraction, today: string): Extracte
     } else if (!Number.isInteger(quantity)) {
       issues.push({
         field: `line ${n}`,
-        message: `Line ${n}: quantity ${quantity} is not a whole number. Purchases are recorded in whole units, so adjust the unit or quantity.`,
+        message: `Line ${n}: quantity ${quantity} is not a whole number. Stock is recorded in whole units, so adjust the unit or quantity.`,
       });
     }
     if (unitPrice === null) issues.push({ field: `line ${n}`, message: `Line ${n}: unit price was not found.` });
-    if (quantity !== null && Number.isInteger(quantity) && unitPrice !== null && lineTotal !== null) {
-      const expected = multiplyMoney(unitPrice, quantity);
-      if (!closeEnough(expected, lineTotal)) {
-        issues.push({
-          field: `line ${n}`,
-          message: `Line ${n}: quantity × unit price does not match the line total printed on the invoice.`,
-        });
-      }
+    const arithmeticValid = isLineArithmeticValid(quantity, unitPrice, lineTotal);
+    if (!arithmeticValid) {
+      issues.push({
+        field: `line ${n}`,
+        message: `Line ${n}: quantity × unit price does not match the line total printed on the invoice.`,
+      });
     }
-    return { description, quantity, unit: cleanText(l.unit, 20) ?? "pcs", unitPrice, lineTotal };
+    return {
+      description,
+      quantity,
+      unit: cleanText(l.unit, 20) ?? "pcs",
+      unitPrice,
+      lineTotal,
+      matchedProductId: null,
+      suggestedCategory: cleanText(l.suggestedCategory, 60),
+      arithmeticValid,
+    };
   });
   if ((raw.lines ?? []).length > MAX_INVOICE_LINES) {
     issues.push({ field: "lines", message: `Only the first ${MAX_INVOICE_LINES} lines were kept.` });
@@ -175,24 +254,35 @@ export function normalizeExtraction(raw: RawExtraction, today: string): Extracte
   if (lines.length > 0 && lineTotals.every((t): t is MinorUnits => t !== null)) {
     const sum = sumMoney(lineTotals);
     const base = subtotal ?? (total !== null && tax !== null ? total - tax : total);
-    if (base !== null && !closeEnough(sum, base)) {
+    // A sale's printed total is net of the discount, so compare against sum − discount.
+    const expected = base !== null && subtotal === null && discountAmount !== null ? base + discountAmount : base;
+    if (expected !== null && !closeEnough(sum, expected)) {
       issues.push({
         field: "total",
         message: "The line totals do not add up to the invoice subtotal/total. Some lines may be missing or misread.",
       });
     }
   }
-  if (subtotal !== null && tax !== null && total !== null && !closeEnough(subtotal + tax, total)) {
+  if (subtotal !== null && tax !== null && total !== null && discountAmount === null && !closeEnough(subtotal + tax, total)) {
     issues.push({ field: "total", message: "Subtotal plus tax does not equal the invoice total." });
   }
-  for (const u of raw.unclear ?? []) {
+
+  const unclearFields: string[] = [];
+  for (const u of [...(raw.unclearFields ?? []), ...(raw.unclear ?? [])]) {
     const t = cleanText(u, 160);
-    if (t) issues.push({ field: "unclear", message: `The AI could not read clearly: ${t}` });
+    if (t && !unclearFields.includes(t)) {
+      unclearFields.push(t);
+      issues.push({ field: "unclear", message: `The AI could not read clearly: ${t}` });
+    }
   }
 
   return {
+    invoiceType,
     isInvoice,
     supplierName,
+    customerName,
+    paymentMethod,
+    discountAmount,
     invoiceNumber: cleanText(raw.invoiceNumber, 60),
     invoiceDate,
     currency: cleanText(raw.currency, 10),
@@ -200,6 +290,7 @@ export function normalizeExtraction(raw: RawExtraction, today: string): Extracte
     subtotal,
     tax,
     total,
+    unclearFields,
     issues,
   };
 }
@@ -223,4 +314,3 @@ export function suggestMatch<T extends { name: string }>(name: string, options: 
   });
   return partial.length === 1 ? partial[0] : null;
 }
-

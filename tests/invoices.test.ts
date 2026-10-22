@@ -265,3 +265,65 @@ describe("invoice review and confirm", () => {
     expect(fakeDb.read(`invoices/${invoiceId}`)).toMatchObject({ reviewStatus: "needs_review" });
   });
 });
+
+describe("invoice types (phase 1)", () => {
+  it("defaults to a purchase and uses the supplier prompt", async () => {
+    const res = await scan();
+    const { invoice } = await res.json();
+    expect(invoice.invoiceType).toBe("purchase");
+    const system = (providerCalls[0].body as unknown as { systemInstruction: { parts: { text: string }[] } })
+      .systemInstruction.parts[0].text;
+    expect(system).toMatch(/BUYER/);
+    expect(invoice.extractedData.lines[0]).toMatchObject({ matchedProductId: null, arithmeticValid: true });
+  });
+
+  it("scans a sale with the receipt prompt and keeps customer, payment and discount", async () => {
+    providerReply = () =>
+      geminiJson({
+        isInvoice: true,
+        customerName: "Ali",
+        paymentMethod: "online",
+        discountAmount: "10",
+        invoiceDate: "2025-03-01",
+        lines: [{ description: "Flour", quantity: 1, unitPrice: "1100", lineTotal: "1100" }],
+        total: "1090",
+        unclearFields: [],
+      });
+    const form = new FormData();
+    form.append("file", new File([new Uint8Array(PNG)], "r.png", { type: "image/png" }));
+    form.append("invoiceType", "sale");
+    const res = await scan("biz-a", new Request("http://localhost/x", { method: "POST", body: form }));
+    expect(res.status).toBe(201);
+    const { invoice } = await res.json();
+    const system = (providerCalls[0].body as unknown as { systemInstruction: { parts: { text: string }[] } })
+      .systemInstruction.parts[0].text;
+    expect(system).toMatch(/SELLER/);
+    expect(invoice).toMatchObject({
+      invoiceType: "sale",
+      filePath: null,
+      extractedData: { customerName: "Ali", paymentMethod: "online", discountAmount: 1000, supplierName: null },
+    });
+  });
+
+  it("rejects an unknown invoice type before calling the AI", async () => {
+    const form = new FormData();
+    form.append("file", new File([new Uint8Array(PNG)], "r.png", { type: "image/png" }));
+    form.append("invoiceType", "refund");
+    const res = await scan("biz-a", new Request("http://localhost/x", { method: "POST", body: form }));
+    expect(res.status).toBe(400);
+    expect(providerCalls).toHaveLength(0);
+  });
+
+  it("treats a stored invoice with no invoiceType as a purchase", async () => {
+    fakeDb.seed("invoices/legacy", {
+      businessId: "biz-a",
+      reviewStatus: "needs_review",
+      extractedData: { lines: [{ description: "Flour", quantity: 1 }], issues: [] },
+      createdAt: "2025-01-01T00:00:00.000Z",
+    });
+    const { getInvoiceForBusiness } = await import("@/server/invoices");
+    const inv = await getInvoiceForBusiness("biz-a", "legacy");
+    expect(inv.invoiceType).toBe("purchase");
+    expect(inv.extractedData.lines[0]).toMatchObject({ matchedProductId: null, arithmeticValid: true });
+  });
+});

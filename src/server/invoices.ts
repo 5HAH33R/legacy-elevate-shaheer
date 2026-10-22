@@ -11,13 +11,17 @@ import {
   MAX_INVOICE_LINES,
   normalizeExtraction,
   rawExtractionSchema,
+  resolveInvoiceType,
+  resolvePaymentMethod,
   type ExtractedInvoice,
   type InvoiceMimeType,
+  type InvoiceType,
 } from "@/lib/invoices";
 import { dateField, moneyField } from "@/lib/validation";
 import type { Business } from "./businesses";
 import { ApiError } from "./errors";
 import { consumeDailyAiUse } from "./ai/conversations";
+import { invoicePrompt } from "./ai/invoice-prompts";
 import { AiError, extractDocumentJson } from "./ai/provider";
 import { recordPurchaseForBusiness, type Purchase } from "./purchases";
 import { createSupplierForBusiness } from "./suppliers";
@@ -27,14 +31,18 @@ import { createSupplierForBusiness } from "./suppliers";
  * the AI service to read it and is NOT stored (filePath stays null), so no
  * file can ever be public. What the AI read is saved as `extractedData` with
  * reviewStatus "needs_review"; it only becomes a business record (a purchase
- * that adds stock) when the owner confirms the reviewed lines. Callers MUST
- * have run requireUser() → requireBusinessOwner(businessId) first.
+ * that adds stock) when the owner confirms the reviewed lines. Each invoice
+ * is a "purchase" (supplier bill) or a "sale" (customer receipt); documents
+ * without the field are purchases. Callers MUST have run requireUser() →
+ * requireBusinessOwner(businessId) first.
  */
 export type InvoiceStatus = "needs_review" | "confirmed" | "discarded";
 
 export type Invoice = {
   invoiceId: string;
   businessId: string;
+  /** Missing on older documents; those are purchases. */
+  invoiceType: InvoiceType;
   fileName: string;
   mimeType: string;
   fileSize: number;
@@ -51,34 +59,6 @@ export type Invoice = {
 };
 
 const COLLECTION = "invoices";
-
-const SYSTEM = `You read supplier invoices, bills and receipts for small shops in Pakistan.
-Extract only what is printed on the document. Never guess, never calculate missing values, never invent items.
-If a field is missing, unreadable or you are unsure, set it to null and describe it in "unclear".
-The document may be in English, Urdu or a mix, and may be a photo of a handwritten bill.`;
-
-const INSTRUCTION = `Return ONLY a JSON object with exactly these keys:
-{
-  "isInvoice": boolean (false if this is not an invoice/bill/receipt),
-  "supplierName": string | null (the seller / company that issued the invoice),
-  "invoiceNumber": string | null,
-  "invoiceDate": string | null (format YYYY-MM-DD; null if not printed or unclear),
-  "currency": string | null (e.g. "PKR"),
-  "lines": [
-    {
-      "description": string (item name as printed),
-      "quantity": number | null,
-      "unit": string | null (e.g. "pcs", "kg", "box", "carton"),
-      "unitPrice": string | null (price per unit as printed, digits and optional decimal point, no currency sign),
-      "lineTotal": string | null (amount for the line as printed)
-    }
-  ],
-  "subtotal": string | null,
-  "tax": string | null (total tax/GST if printed),
-  "total": string | null (grand total as printed),
-  "unclear": string[] (short notes on anything you could not read with confidence)
-}
-List at most ${MAX_INVOICE_LINES} lines, in the order printed. Do not include discounts or delivery as item lines; mention them in "unclear" instead.`;
 
 export const confirmInvoiceSchema = z
   .object({
@@ -114,24 +94,37 @@ function str(value: unknown): string | null {
 function serializeInvoice(id: string, data: DocumentData): Invoice {
   const status = data.reviewStatus === "confirmed" || data.reviewStatus === "discarded" ? data.reviewStatus : "needs_review";
   const extracted = (data.extractedData ?? {}) as Partial<ExtractedInvoice>;
+  const invoiceType = resolveInvoiceType(data.invoiceType ?? extracted.invoiceType);
+  const lines = Array.isArray(extracted.lines) ? extracted.lines : [];
   return {
     invoiceId: id,
     businessId: String(data.businessId ?? ""),
+    invoiceType,
     fileName: String(data.fileName ?? "invoice"),
     mimeType: String(data.mimeType ?? ""),
     fileSize: typeof data.fileSize === "number" ? data.fileSize : 0,
     filePath: null,
     reviewStatus: status,
     extractedData: {
+      invoiceType,
       isInvoice: extracted.isInvoice !== false,
       supplierName: extracted.supplierName ?? null,
+      customerName: extracted.customerName ?? null,
+      paymentMethod: resolvePaymentMethod(extracted.paymentMethod),
+      discountAmount: typeof extracted.discountAmount === "number" ? extracted.discountAmount : null,
       invoiceNumber: extracted.invoiceNumber ?? null,
       invoiceDate: extracted.invoiceDate ?? null,
       currency: extracted.currency ?? null,
-      lines: Array.isArray(extracted.lines) ? extracted.lines : [],
+      // Older lines lack the Phase 1 fields; default them rather than migrate.
+      lines: lines.map((l) => ({
+        ...l,
+        matchedProductId: l.matchedProductId ?? null,
+        arithmeticValid: l.arithmeticValid !== false,
+      })),
       subtotal: extracted.subtotal ?? null,
       tax: extracted.tax ?? null,
       total: extracted.total ?? null,
+      unclearFields: Array.isArray(extracted.unclearFields) ? extracted.unclearFields : [],
       issues: Array.isArray(extracted.issues) ? extracted.issues : [],
     },
     invoiceDate: str(data.invoiceDate),
@@ -175,13 +168,22 @@ const AI_ERROR_STATUS: Record<AiError["kind"], number> = {
 
 /**
  * Read an uploaded invoice with the AI and save the result for review.
- * Writes only the `invoices` and `aiUsage` collections.
+ * `invoiceType` picks the prompt (supplier bill vs customer receipt) and
+ * defaults to purchase. Writes only the `invoices` and `aiUsage` collections.
  */
 export async function scanInvoiceForBusiness(
-  input: { uid: string; business: Business; fileName: string; declaredType: string; bytes: Uint8Array },
+  input: {
+    uid: string;
+    business: Business;
+    fileName: string;
+    declaredType: string;
+    bytes: Uint8Array;
+    invoiceType?: InvoiceType;
+  },
   db: Firestore = getAdminDb(),
 ): Promise<Invoice> {
   const { uid, business, bytes } = input;
+  const invoiceType = input.invoiceType ?? "purchase";
   if (bytes.byteLength === 0) throw new ApiError(400, "The file is empty.");
   if (bytes.byteLength > MAX_INVOICE_BYTES) {
     throw new ApiError(413, `The file is too large. Upload a file under ${MAX_INVOICE_BYTES / 1024 / 1024} MB.`);
@@ -198,11 +200,12 @@ export async function scanInvoiceForBusiness(
   const today = todayInTimeZone(business.timezone);
   await consumeDailyAiUse(uid, today, config.AI_INVOICE_DAILY_LIMIT, "invoices", db);
 
+  const prompt = invoicePrompt(invoiceType);
   let answer;
   try {
     answer = await extractDocumentJson(config, {
-      system: SYSTEM,
-      instruction: INSTRUCTION,
+      system: prompt.system,
+      instruction: prompt.instruction,
       mimeType,
       base64: Buffer.from(bytes).toString("base64"),
     });
@@ -223,7 +226,7 @@ export async function scanInvoiceForBusiness(
   if (!raw.success) {
     throw new ApiError(502, "The AI service could not read this invoice clearly. Try a sharper, well-lit photo.");
   }
-  const extracted = normalizeExtraction(raw.data, today);
+  const extracted = normalizeExtraction(raw.data, today, invoiceType);
   if (answer.truncated) {
     extracted.issues.push({ field: "lines", message: "The invoice was very long; some lines may be missing. Check against the paper copy." });
   }
@@ -233,6 +236,7 @@ export async function scanInvoiceForBusiness(
   const doc = {
     businessId: business.businessId,
     uploadedBy: uid,
+    invoiceType,
     fileName: input.fileName.slice(0, 120) || "invoice",
     mimeType,
     fileSize: bytes.byteLength,
@@ -286,7 +290,12 @@ export async function discardInvoiceForBusiness(
 ): Promise<Invoice> {
   const invoice = await getInvoiceForBusiness(businessId, invoiceId, db);
   if (invoice.reviewStatus === "confirmed") {
-    throw new ApiError(409, "This invoice is already recorded as a purchase. Void the purchase instead.");
+    throw new ApiError(
+      409,
+      invoice.invoiceType === "sale"
+        ? "This invoice is already recorded as a sale."
+        : "This invoice is already recorded as a purchase. Void the purchase instead.",
+    );
   }
   if (invoice.reviewStatus === "needs_review") {
     await db.collection(COLLECTION).doc(invoiceId).update({ reviewStatus: "discarded", updatedAt: new Date().toISOString() });
@@ -298,6 +307,7 @@ export async function discardInvoiceForBusiness(
  * Turn the owner-reviewed lines into a purchase (stock goes up, product costs
  * follow the purchase, sourceDocumentId links back here). Idempotent on the
  * client purchaseId, and a new supplier is created at most once per invoice.
+ * Sale invoices are confirmed by a later phase; they are refused here.
  */
 export async function confirmInvoiceForBusiness(
   input: { business: Business; uid: string; invoiceId: string; data: ConfirmInvoiceInput },
@@ -312,6 +322,9 @@ export async function confirmInvoiceForBusiness(
     throw new ApiError(404, "Invoice not found.");
   }
   const invoice = serializeInvoice(snap.id, stored);
+  if (invoice.invoiceType === "sale") {
+    throw new ApiError(400, "Confirming a sales receipt is not available yet.");
+  }
   if (invoice.reviewStatus === "discarded") {
     throw new ApiError(409, "This invoice was discarded. Upload it again to record it.");
   }
