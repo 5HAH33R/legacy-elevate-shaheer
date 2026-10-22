@@ -2,7 +2,7 @@
 export const fieldClass = "flex flex-col gap-1.5";
 export const labelClass = "text-sm font-medium tracking-tight";
 export const inputClass =
-  "h-10 w-full rounded-lg border border-control bg-surface px-3 text-sm text-foreground placeholder:text-muted transition-all duration-150 focus:border-focus-ring focus:outline-none focus:ring-2 focus:ring-focus-ring/25 focus:shadow-xs disabled:cursor-not-allowed disabled:opacity-60";
+  "h-10 w-full rounded-lg border border-control bg-surface px-3 text-sm text-foreground placeholder:text-muted transition-all duration-150 hover:border-muted focus:border-focus-ring focus:outline-none focus:ring-2 focus:ring-focus-ring/25 focus:shadow-xs disabled:cursor-not-allowed disabled:opacity-60";
 /** The one lime action on a screen with subtle scale and shadow. */
 export const primaryButtonClass =
   "inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-xs transition-all duration-150 hover:brightness-105 hover:shadow-sm hover:scale-[1.01] active:scale-[0.98] active:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100";
@@ -16,9 +16,9 @@ export const successTextClass = "text-sm text-success font-medium";
 export const mutedLinkClass =
   "font-medium text-foreground underline underline-offset-4 transition-colors hover:text-primary";
 
-/** Panels: a 1px line on the white page, smooth card hover lift. */
-export const panelClass = "rounded-xl border border-border bg-surface transition-colors";
-export const panelPadClass = "rounded-xl border border-border bg-surface p-5 sm:p-6 card-hover-lift";
+/** Panels: a 1px line on the soft ground, smooth card elevation and lift. */
+export const panelClass = "rounded-xl border border-border bg-surface shadow-xs transition-colors";
+export const panelPadClass = "rounded-xl border border-border bg-surface p-5 sm:p-6 shadow-xs card-hover-lift";
 export const panelTitleClass = "text-base font-semibold tracking-tight";
 /** Empty state inside a list's frame. */
 export const emptyStateClass =

@@ -22,28 +22,28 @@
   --brand-graphite: #171b16;
   --brand-soft-white: #f6f8f4;
 
-  /* Light theme (default): a white page, one soft tone step for panels. */
-  --background: #ffffff;
+  /* Light theme (default): Soft White page ground (#f6f8f4) with crisp white elevated panels. */
+  --background: #f6f8f4;
   --surface: #ffffff;
-  --surface-muted: #f6f7f4;
-  --sidebar: #fafbf8;
-  --active: #ebede7;
-  --foreground: #111410;
-  --muted: #5b6257;
-  --border: #e6e8e2;
-  --rule: #eff1ec;
-  --control: #d2d6cd;
+  --surface-muted: #eef2ea;
+  --sidebar: #fbfcf9;
+  --active: #e2e8dc;
+  --foreground: #080a08;
+  --muted: #4e564a;
+  --border: #dbe0d5;
+  --rule: #e5eadf;
+  --control: #bcc4b6;
   --primary: var(--brand-lime);
-  --primary-foreground: var(--brand-graphite);
+  --primary-foreground: var(--brand-carbon);
   --ink-button: var(--brand-graphite);
   --ink-button-foreground: #ffffff;
   --focus-ring: #4d6b00;
   /* Data series: lime reads too pale on white, so light uses a deep lime. */
-  --chart: #6f9e00;
-  --chart-muted: #dfe3da;
+  --chart: #588000;
+  --chart-muted: #d5dbcf;
 
   /* Status: always pair with text or an icon, never color alone. */
-  --success: #247b50;
+  --success: #1e7046;
   --success-bg: #e3f7e9;
   --warning: #92400e;
   --warning-bg: #fffbeb;
@@ -214,12 +214,57 @@ body {
   border: 1px solid var(--border);
 }
 
+.floating-nav {
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border);
+}
+
+@keyframes marqueeVertical {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes marqueeHorizontal {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee-vertical {
+  animation: marqueeVertical 25s linear infinite;
+}
+.animate-marquee-vertical:hover {
+  animation-play-state: paused;
+}
+
+.animate-marquee-horizontal {
+  display: flex;
+  width: max-content;
+  animation: marqueeHorizontal 30s linear infinite;
+}
+.animate-marquee-horizontal:hover {
+  animation-play-state: paused;
+}
+
 .card-hover-lift {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .card-hover-lift:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.07), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
+}
+:root[data-theme="dark"] .card-hover-lift {
+  box-shadow: none;
 }
 :root[data-theme="dark"] .card-hover-lift:hover {
   box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.4), 0 0 16px -2px rgba(198, 255, 0, 0.08);
@@ -260,28 +305,42 @@ table,
 /* Show the logo (and theme icon) that matches the active theme. */
 .logo-for-dark,
 .only-dark {
-  display: none;
+  display: none !important;
+}
+.logo-for-light,
+.only-light {
+  display: flex !important;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .logo-for-light,
   :root:not([data-theme="light"]) .only-light {
-    display: none;
+    display: none !important;
   }
   :root:not([data-theme="light"]) .logo-for-dark,
   :root:not([data-theme="light"]) .only-dark {
-    display: block;
+    display: block !important;
   }
 }
 
 :root[data-theme="dark"] .logo-for-light,
 :root[data-theme="dark"] .only-light {
-  display: none;
+  display: none !important;
 }
 
 :root[data-theme="dark"] .logo-for-dark,
 :root[data-theme="dark"] .only-dark {
-  display: block;
+  display: block !important;
+}
+
+:root[data-theme="light"] .logo-for-dark,
+:root[data-theme="light"] .only-dark {
+  display: none !important;
+}
+
+:root[data-theme="light"] .logo-for-light,
+:root[data-theme="light"] .only-light {
+  display: flex !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

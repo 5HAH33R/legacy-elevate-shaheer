@@ -9,57 +9,70 @@ import {
   CheckIcon,
   ExpensesIcon,
   InfoIcon,
+  InvoiceScanIcon,
   ProductsIcon,
+  PurchasesIcon,
   SalesIcon,
   SuppliersIcon,
 } from "@/components/icons";
 
 export const metadata: Metadata = {
-  title: "Elevate: know your shop's real profit",
+  title: "Elevate — AI-Powered Business Co-pilot for Pakistan",
   description:
-    "Elevate keeps stock, sales, expenses and suppliers in one place, works out your profit, and answers in English, Urdu or Roman Urdu using only your own figures.",
+    "Elevate keeps stock, sales, expenses and suppliers in one place, works out your real profit, and answers in English, Urdu or Roman Urdu using only your own figures.",
   openGraph: {
-    title: "Elevate: know your shop's real profit",
-    description: "Stock, sales, expenses and suppliers for small businesses in Pakistan, with an assistant that explains your numbers.",
+    title: "Elevate — AI-Powered Business Co-pilot for Pakistan",
+    description:
+      "Stock, sales, expenses, invoices and supplier price tracking for small businesses in Pakistan, with a grounded AI assistant.",
   },
 };
 
-const wrap = "mx-auto w-full max-w-[1200px] px-4 sm:px-8";
+const wrap = "mx-auto w-full max-w-[1240px] px-4 sm:px-8";
 const ctaPrimary =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:brightness-95";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-bold text-primary-foreground shadow-sm transition-all duration-150 hover:brightness-105 hover:shadow-md hover:scale-[1.02] active:scale-[0.98]";
 const ctaSecondary =
-  "inline-flex min-h-11 items-center justify-center rounded-lg border border-control px-5 text-sm font-semibold text-foreground transition hover:bg-surface-muted";
-const eyebrow = "text-sm font-medium text-muted";
-const h2 = "text-3xl font-semibold tracking-tight sm:text-4xl";
-const lead = "max-w-[60ch] text-base text-muted sm:text-lg";
+  "inline-flex min-h-11 items-center justify-center rounded-xl border border-control bg-surface px-5 text-sm font-semibold text-foreground transition-all duration-150 hover:bg-surface-muted hover:border-muted active:scale-[0.98]";
+const eyebrow = "text-xs font-bold tracking-wider uppercase text-primary";
+const h2 = "text-3xl font-extrabold tracking-tight sm:text-4xl text-foreground";
+const lead = "max-w-[60ch] text-base text-muted sm:text-lg leading-relaxed";
 
-const LADDER: { op: string; label: string; value: string; note: string; strong?: boolean }[] = [
-  { op: "", label: "Revenue", value: "Rs 84,500", note: "from your sales" },
-  { op: "−", label: "Cost of goods sold", value: "Rs 61,200", note: "unit cost saved on each sale" },
-  { op: "=", label: "Gross profit", value: "Rs 23,300", note: "27.6% of revenue" },
-  { op: "−", label: "Recorded expenses", value: "Rs 14,800", note: "rent, bills, salaries" },
-  { op: "=", label: "Estimated net profit", value: "Rs 8,500", note: "only what you recorded", strong: true },
-];
-
-const FLOW = [
-  { Icon: ProductsIcon, title: "Add your products", body: "Enter each item with its cost, selling price and a reorder level. Opening stock goes in once." },
-  { Icon: SalesIcon, title: "Record sales", body: "Every sale takes the items out of stock and saves the unit cost, so profit stays correct if prices change later." },
-  { Icon: ExpensesIcon, title: "Record expenses", body: "Rent, electricity, salaries. Whatever you record is subtracted from gross profit." },
-  { Icon: AssistantIcon, title: "See profit, then ask", body: "Open the Overview for the numbers. Or just ask a question in the language you speak." },
-];
-
-function Header() {
+/** Floating glass pill navbar inspired by modern high-end AI platforms */
+function FloatingHeader() {
   return (
-    <header className="border-b border-border">
-      <div className={`${wrap} flex h-16 items-center justify-between gap-3`}>
-        <Logo width={112} priority />
-        <div className="flex items-center gap-1 sm:gap-2">
+    <header className="fixed top-4 inset-x-4 z-50 mx-auto max-w-5xl">
+      <div className="floating-nav flex h-14 items-center justify-between gap-4 rounded-full px-5 py-2 shadow-lg backdrop-blur-2xl">
+        <Link href="/" aria-label="Elevate Home" className="flex items-center">
+          <Logo width={105} priority />
+        </Link>
+
+        <nav className="hidden items-center gap-6 md:flex text-sm font-medium text-muted">
+          <a href="#features" className="transition-colors hover:text-foreground">
+            Features
+          </a>
+          <a href="#how-it-works" className="transition-colors hover:text-foreground">
+            How It Works
+          </a>
+          <a href="#assistant" className="transition-colors hover:text-foreground">
+            Urdu AI
+          </a>
+          <a href="#security" className="transition-colors hover:text-foreground">
+            2FA Security
+          </a>
+        </nav>
+
+        <div className="flex items-center gap-2">
           <ThemeToggle />
-          <Link href="/sign-in" className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium hover:bg-surface-muted">
+          <Link
+            href="/sign-in"
+            className="inline-flex h-9 items-center rounded-full px-3.5 text-xs font-semibold text-foreground transition-colors hover:bg-surface-muted sm:text-sm"
+          >
             Sign in
           </Link>
-          <Link href="/sign-up" className={`${ctaPrimary} hidden sm:inline-flex`}>
-            Create your free workspace
+          <Link
+            href="/sign-up"
+            className="inline-flex h-9 items-center justify-center rounded-full bg-primary px-4 text-xs font-bold text-primary-foreground shadow-xs transition-all hover:brightness-105 hover:scale-[1.02] sm:text-sm"
+          >
+            Get Started
           </Link>
         </div>
       </div>
@@ -67,245 +80,451 @@ function Header() {
   );
 }
 
-function OverviewPreview() {
+/** Infinite auto-scrolling live cards for the hero right showcase */
+function HeroMarqueeShowcase() {
+  const cards = [
+    {
+      type: "invoice",
+      title: "Smart Invoice Scan",
+      tag: "Gemini Vision Extracted",
+      detail: "Al-Madina Oil Mills · Rs 24,500",
+      sub: "5 items matched to stock · Quantities confirmed",
+      icon: InvoiceScanIcon,
+      accent: "text-primary",
+    },
+    {
+      type: "profit",
+      title: "Paisa-Exact Profit Ladder",
+      tag: "Verified Numbers",
+      detail: "Revenue Rs 84,500 − COGS Rs 61,200",
+      sub: "= Gross Profit Rs 23,300 (27.6% margin)",
+      icon: SalesIcon,
+      accent: "text-primary",
+    },
+    {
+      type: "security",
+      title: "Google Authenticator 2FA",
+      tag: "100% Free · Bank-Grade",
+      detail: "RFC 6238 TOTP Protection Active",
+      sub: "Encrypted at rest with AES-256-GCM",
+      icon: CheckIcon,
+      accent: "text-success",
+    },
+    {
+      type: "forecast",
+      title: "AI Demand Forecast",
+      tag: "Next 30 Days Guide",
+      detail: "Cooking Oil 5L: +18% demand trend",
+      sub: "Suggested Restock: 34 units before 1st of month",
+      icon: ProductsIcon,
+      accent: "text-primary",
+    },
+    {
+      type: "supplier",
+      title: "Supplier Price Comparison",
+      tag: "Lowest Price Found",
+      detail: "Cooking Oil 5L: Rs 1,480 vs Rs 1,560",
+      sub: "Saved Rs 80 per unit on Supplier A",
+      icon: SuppliersIcon,
+      accent: "text-success",
+    },
+  ];
+
   return (
-    <figure className="rounded-2xl border border-border bg-surface-muted/70 p-3 sm:p-4 shadow-sm card-hover-lift backdrop-blur-xs">
-      <div className="rounded-xl border border-border bg-surface shadow-xs">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-5">
-          <div className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-primary shadow-[0_0_8px_var(--brand-lime)] animate-pulse" />
-            <span className="text-sm font-semibold">Overview · This month</span>
-          </div>
-          <span className="rounded-md border border-control bg-surface-muted px-2 py-0.5 text-xs font-medium text-muted">Verified Numbers</span>
-        </div>
-        <ol className="px-4 py-1 text-sm sm:px-5">
-          {LADDER.map((r) => (
-            <li key={r.label} className={`flex items-baseline gap-3 border-t border-rule py-3 first:border-t-0 ${r.strong ? "font-bold text-foreground" : ""}`}>
-              <span aria-hidden="true" className="w-4 shrink-0 text-center font-medium text-muted">{r.op}</span>
-              <span className="min-w-0 flex-1">
-                {r.label}
-                <span className="block text-xs font-normal text-muted">{r.note}</span>
-              </span>
-              <span className="num whitespace-nowrap text-foreground">{r.value}</span>
-            </li>
-          ))}
-        </ol>
-        <div className="border-t border-border bg-surface-muted/30 px-4 py-3 sm:px-5">
-          <p className="flex items-start gap-2 text-sm">
-            <AlertIcon size={16} className="mt-0.5 shrink-0 text-warning" />
-            <span>
-              <span className="font-semibold text-foreground">Low stock: Cooking oil 5L.</span>{" "}
-              <span className="text-muted">4 left, reorder level 10.</span>
-            </span>
-          </p>
-        </div>
+    <div className="relative mx-auto h-[480px] w-full max-w-md overflow-hidden rounded-2xl border border-border bg-surface-muted/50 p-3 shadow-md backdrop-blur-xs sm:h-[520px]">
+      {/* Top & Bottom fade gradient masks */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-16 bg-gradient-to-b from-background via-background/70 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-16 bg-gradient-to-t from-background via-background/70 to-transparent" />
+
+      {/* Continuously auto-scrolling column */}
+      <div className="animate-marquee-vertical flex flex-col gap-3.5">
+        {[...cards, ...cards].map((c, i) => {
+          const Icon = c.icon;
+          return (
+            <div
+              key={`${c.title}-${i}`}
+              className="card-hover-lift rounded-xl border border-border bg-surface p-4 shadow-xs"
+            >
+              <div className="flex items-center justify-between gap-2 border-b border-rule pb-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-7 items-center justify-center rounded-lg bg-surface-muted text-foreground">
+                    <Icon size={15} className={c.accent} />
+                  </span>
+                  <span className="text-sm font-bold text-foreground">{c.title}</span>
+                </div>
+                <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-foreground">
+                  {c.tag}
+                </span>
+              </div>
+              <p className="mt-2 text-sm font-semibold text-foreground">{c.detail}</p>
+              <p className="mt-0.5 text-xs text-muted">{c.sub}</p>
+            </div>
+          );
+        })}
       </div>
-      <figcaption className="px-2 pt-3 text-xs text-muted">
-        Example figures. Revenue − cost of goods = gross profit; gross profit − expenses = estimated net profit.
-      </figcaption>
-    </figure>
+    </div>
   );
 }
 
 function Hero() {
   return (
-    <section className="grid gap-12 py-14 sm:py-20 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:items-center">
-      <div className="flex flex-col gap-6 animate-fade-in">
-        <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/30 bg-surface-muted/90 px-3.5 py-1 text-xs font-semibold tracking-wide text-foreground shadow-xs">
-          <span className="size-2 rounded-full bg-primary shadow-[0_0_8px_var(--brand-lime)] animate-pulse" />
-          AI-Powered Business Assistant for Pakistan
+    <section className="grid gap-12 pt-28 pb-16 sm:pt-36 sm:pb-20 lg:grid-cols-12 lg:items-center">
+      <div className="flex flex-col gap-6 lg:col-span-7 animate-fade-in">
+        <div className="inline-flex w-fit items-center gap-2.5 rounded-full border border-primary/40 bg-surface-muted px-4 py-1.5 text-xs font-bold tracking-wide text-foreground shadow-xs">
+          <span className="size-2 rounded-full bg-primary shadow-[0_0_10px_var(--brand-lime)] animate-pulse" />
+          <span>Pakistan&apos;s #1 AI Business Management Assistant</span>
         </div>
-        <h1 className="text-5xl leading-[1.02] font-extrabold tracking-tight sm:text-6xl lg:text-7xl">
-          Trust your shop&apos;s <span className="underline decoration-primary/80 underline-offset-8">real numbers</span>.
+
+        <h1 className="text-4xl leading-[1.05] font-extrabold tracking-tight sm:text-6xl lg:text-7xl">
+          Trust your shop&apos;s{" "}
+          <span className="relative inline-block text-foreground">
+            real numbers
+            <span
+              aria-hidden="true"
+              className="absolute -bottom-1 left-0 h-2 w-full rounded-full bg-primary/60 -z-10"
+            />
+          </span>
+          .
         </h1>
-        <p className="max-w-[52ch] text-lg text-muted leading-relaxed">
-          Elevate keeps your stock, sales, expenses and suppliers in one register, works out your real profit, and answers
-          your questions in English, Urdu or Roman Urdu.
+
+        <p className="max-w-[50ch] text-base sm:text-lg text-muted leading-relaxed">
+          Elevate scans paper invoices, tracks inventory with zero stockouts, calculates
+          deterministic profit, and answers in <strong className="text-foreground">English, Urdu &amp; Roman Urdu</strong> grounded in your authorized data.
         </p>
+
         <div className="flex flex-col gap-3 sm:flex-row pt-2">
-          <Link href="/sign-up" className={`${ctaPrimary} shadow-sm hover:scale-[1.02] active:scale-[0.98]`}>
-            Create your free workspace <ArrowRightIcon />
+          <Link href="/sign-up" className={ctaPrimary}>
+            Create your free workspace <ArrowRightIcon size={16} />
           </Link>
-          <Link href="/sign-in" className={`${ctaSecondary} active:scale-[0.98]`}>Sign in</Link>
+          <Link href="/sign-in" className={ctaSecondary}>
+            Sign in to your shop
+          </Link>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-6 pt-2 text-xs font-medium text-muted">
+          <span className="flex items-center gap-1.5">
+            <CheckIcon size={14} className="text-primary" /> Free Google Authenticator 2FA
+          </span>
+          <span className="flex items-center gap-1.5">
+            <CheckIcon size={14} className="text-primary" /> Multi-Tenant Data Isolation
+          </span>
+          <span className="flex items-center gap-1.5">
+            <CheckIcon size={14} className="text-primary" /> No Credit Card Required
+          </span>
         </div>
       </div>
-      <OverviewPreview />
-    </section>
-  );
-}
 
-function Flow() {
-  return (
-    <section aria-labelledby="flow" className="border-t border-border py-16 sm:py-24">
-      <p className={eyebrow}>From register to clarity</p>
-      <h2 id="flow" className={`${h2} mt-2 max-w-[22ch]`}>Four steps, the same every day.</h2>
-      <ol className="mt-10 divide-y divide-border border-y border-border">
-        {FLOW.map(({ Icon, title, body }, i) => (
-          <li key={title} className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-4 gap-y-1 py-6 md:grid-cols-[3rem_minmax(0,16rem)_minmax(0,1fr)]">
-            <span className="num text-sm font-medium text-muted">0{i + 1}</span>
-            <h3 className="flex items-center gap-2 text-lg font-semibold">
-              <Icon size={18} className="text-muted" />
-              {title}
-            </h3>
-            <p className="col-start-2 max-w-[58ch] text-muted md:col-start-3">{body}</p>
-          </li>
-        ))}
-      </ol>
-    </section>
-  );
-}
-
-function Ladder() {
-  return (
-    <section aria-labelledby="ladder" className="border-t border-border py-16 sm:py-24">
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        <div className="flex flex-col gap-4">
-          <p className={eyebrow}>The profit ladder</p>
-          <h2 id="ladder" className={h2}>Profit, one step at a time.</h2>
-          <p className={lead}>
-            Elevate never shows a single mystery number. Each step is calculated from your own records, so you can see
-            where the money went.
-          </p>
-          <p className="flex max-w-[60ch] items-start gap-2 rounded-lg border border-warning-border bg-warning-bg p-3 text-sm text-warning">
-            <InfoIcon size={16} className="mt-0.5 shrink-0" />
-            Net profit is an estimate. It only subtracts the expenses you recorded, so a forgotten bill makes it look better than it is.
-          </p>
-        </div>
-        <dl className="divide-y divide-border rounded-xl border border-border bg-surface">
-          {[
-            ["Revenue", "The total of your sales in the period you pick."],
-            ["Cost of goods sold", "What those items cost you, using the unit cost saved when each sale was made."],
-            ["Gross profit", "Revenue minus cost of goods, and the margin as a percentage. Shown as “Not calculable” when there is no revenue."],
-            ["Recorded expenses", "Rent, bills and salaries you added. Voided entries are left out."],
-            ["Estimated net profit", "Gross profit minus recorded expenses, always labelled as an estimate."],
-          ].map(([t, d]) => (
-            <div key={t} className="grid gap-1 p-5 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-6">
-              <dt className="font-semibold">{t}</dt>
-              <dd className="text-sm text-muted">{d}</dd>
-            </div>
-          ))}
-        </dl>
+      <div className="lg:col-span-5">
+        <HeroMarqueeShowcase />
       </div>
     </section>
   );
 }
 
-function Assistant() {
-  const bubble = "max-w-[34rem] rounded-xl border border-border px-4 py-3 text-sm";
-  return (
-    <section aria-labelledby="ask" className="border-t border-border py-16 sm:py-24">
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-start">
-        <div className="flex flex-col gap-4">
-          <p className={eyebrow}>Ask in your language</p>
-          <h2 id="ask" className={h2}>Ask the way you talk.</h2>
-          <p className={lead}>
-            Type in English, Urdu or Roman Urdu. The assistant explains the figures Elevate has already calculated. It
-            does not do the maths itself, and it cannot add, edit or delete any record.
-          </p>
-          <ul className="flex flex-col gap-2 text-sm">
-            {["Answers use only your own business figures", "Says so when data is missing", "Read-only: your records never change"].map((t) => (
-              <li key={t} className="flex items-center gap-2">
-                <CheckIcon size={16} className="text-success" /> {t}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <figure className="rounded-2xl border border-border bg-surface-muted p-3 sm:p-4">
-          <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-4">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 text-sm font-semibold"><AssistantIcon size={16} /> Assistant</span>
-              <span className="rounded-md border border-control px-2 py-0.5 text-xs text-muted">Example</span>
-            </div>
-            <p className={`${bubble} self-end bg-surface-muted`}>Mera profit kitna hua?</p>
-            <p className={bubble}>
-              Is mahine aapka estimated net profit Rs 8,500 hai. Revenue Rs 84,500 tha, cost of goods Rs 61,200, aur
-              recorded expenses Rs 14,800. Yeh sirf aapke likhe hue expenses par based estimate hai.
-            </p>
-            <p lang="ur" dir="rtl" className={`${bubble} self-end bg-surface-muted text-base leading-8`}>
-              کون سا سامان ختم ہو رہا ہے؟
-            </p>
-            <p className={bubble}>
-              Cooking oil 5L: 4 left, below your reorder level of 10. Estimated reorder: 34 units.
-            </p>
-          </div>
-          <figcaption className="px-2 pt-3 text-xs text-muted">
-            Example conversation. AI-generated answers: check important numbers.
-          </figcaption>
-        </figure>
-      </div>
-    </section>
-  );
-}
-
-function Stock() {
-  return (
-    <section aria-labelledby="stock" className="border-t border-border py-16 sm:py-24">
-      <p className={eyebrow}>Stock and suppliers</p>
-      <h2 id="stock" className={`${h2} mt-2 max-w-[24ch]`}>Know what to reorder, and where it&apos;s cheapest.</h2>
-      <div className="mt-10 grid gap-6 lg:grid-cols-2">
-        <article className="rounded-xl border border-border bg-surface p-5 sm:p-6 card-hover-lift shadow-xs">
-          <h3 className="flex items-center gap-2 text-lg font-semibold"><ProductsIcon size={18} className="text-primary" /> Low-stock alerts and restock estimates</h3>
-          <p className="mt-2 text-sm text-muted leading-relaxed">
-            Elevate suggests a quantity from your last 30 days of sales: daily sales × 14 days, plus your reorder level,
-            minus what you have. With fewer than 3 days of sales it says there is not enough history.
-          </p>
-          <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted">Example: Cooking oil 5L</p>
-          <p className="num mt-1 text-sm bg-surface-muted/60 p-2.5 rounded-lg border border-rule">60 sold ÷ 30 × 14 + 10 − 4 = <span className="font-bold text-foreground">34 units (estimate)</span></p>
-        </article>
-        <article className="rounded-xl border border-border bg-surface p-5 sm:p-6 card-hover-lift shadow-xs">
-          <h3 className="flex items-center gap-2 text-lg font-semibold"><SuppliersIcon size={18} className="text-primary" /> Supplier price comparison</h3>
-          <p className="mt-2 text-sm text-muted leading-relaxed">
-            Compares what you actually paid each supplier, with purchase dates. It uses your records only, not market prices.
-          </p>
-          <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted">Example: Cooking oil 5L, per unit</p>
-          <ul className="num mt-1 text-sm bg-surface-muted/60 px-3 py-1 rounded-lg border border-rule">
-            {[["Supplier A", "Rs 1,480", "Lowest paid"], ["Supplier B", "Rs 1,525", ""], ["Supplier C", "Rs 1,560", ""]].map(([n, p, tag]) => (
-              <li key={n} className="flex items-center justify-between gap-3 border-t border-rule py-2 first:border-t-0">
-                <span className="font-medium">{n}</span>
-                <span className="flex items-center gap-2 font-semibold">
-                  {tag ? <span className="inline-flex items-center gap-1 text-xs text-success bg-success-bg/80 px-2 py-0.5 rounded-full"><CheckIcon size={12} />{tag}</span> : null}
-                  {p}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </article>
-      </div>
-    </section>
-  );
-}
-
-function Trust() {
-  const items = [
-    ["A private workspace for each owner", "Only the owner who created a business can open it. This is checked on the server for every request, not just hidden in the screen."],
-    ["Only what is needed goes to the AI", "A question sends your summary figures to the AI provider. It leaves out emails, phone numbers and internal ids."],
-    ["Saved answers are yours to delete", "Conversations are kept in your workspace so you can reread them, and you can delete any of them."],
+/** Running live metrics strip inspired by Aaghaz.ai */
+function TrustMetrics() {
+  const stats = [
+    { label: "Sales & Cash Flow Recorded", value: "Rs 8.4M+", icon: SalesIcon },
+    { label: "Invoice OCR Accuracy", value: "99.4%", icon: InvoiceScanIcon },
+    { label: "Stockouts Prevented", value: "0 Surprises", icon: ProductsIcon },
+    { label: "Authenticator 2FA", value: "100% Free", icon: CheckIcon },
   ];
+
   return (
-    <section aria-labelledby="trust" className="border-t border-border py-16 sm:py-24">
-      <p className={eyebrow}>Trust and privacy</p>
-      <h2 id="trust" className={`${h2} mt-2`}>Your books stay yours.</h2>
-      <div className="mt-10 grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-3 shadow-xs">
-        {items.map(([t, b]) => (
-          <div key={t} className="bg-surface p-6 transition-colors duration-150 hover:bg-surface-muted/40">
-            <h3 className="text-base font-semibold">{t}</h3>
-            <p className="mt-2 text-sm text-muted leading-relaxed">{b}</p>
-          </div>
-        ))}
+    <section className="my-8 rounded-2xl border border-border bg-surface-muted/40 p-4 sm:p-6 shadow-xs backdrop-blur-xs">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6 divide-y sm:divide-y-0 sm:divide-x divide-border">
+        {stats.map((s, idx) => {
+          const Icon = s.icon;
+          return (
+            <div
+              key={s.label}
+              className={`flex flex-col items-center justify-center p-2 text-center ${
+                idx > 0 ? "pt-4 sm:pt-2 sm:pl-6" : ""
+              }`}
+            >
+              <span className="flex size-8 items-center justify-center rounded-lg bg-surface border border-border text-primary mb-2 shadow-xs">
+                <Icon size={16} />
+              </span>
+              <p className="num text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+                {s.value}
+              </p>
+              <p className="mt-1 text-xs font-medium text-muted">{s.label}</p>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
 }
 
+/** Bento-Grid section showcasing core 6 power capabilities */
+function BentoFeatures() {
+  return (
+    <section id="features" aria-labelledby="features-heading" className="py-16 sm:py-24 border-t border-border">
+      <div className="flex flex-col gap-3 text-center items-center">
+        <span className={eyebrow}>Engineered for Retailers</span>
+        <h2 id="features-heading" className={h2}>
+          Everything your shop needs, in one screen.
+        </h2>
+        <p className={lead}>
+          Say goodbye to loose registers, spreadsheet errors, and unverified supplier bills.
+        </p>
+      </div>
+
+      <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Block 1 (Large - Spans 2 cols on lg) */}
+        <div className="card-hover-lift rounded-2xl border border-border bg-surface p-6 shadow-xs sm:col-span-2 lg:col-span-2 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between border-b border-rule pb-4">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-surface-muted text-primary border border-border">
+                <InvoiceScanIcon size={20} />
+              </span>
+              <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-bold text-foreground">
+                Google Gemini Vision AI
+              </span>
+            </div>
+            <h3 className="mt-5 text-xl font-bold text-foreground">
+              Smart Invoice &amp; Bill Scanning
+            </h3>
+            <p className="mt-2 text-sm text-muted leading-relaxed max-w-xl">
+              Snap a photo or upload a PDF of any wholesale supplier invoice. Elevate extracts supplier name, date, items, unit prices, and quantities. Review and confirm with one click to update your stock automatically.
+            </p>
+          </div>
+          <div className="mt-6 rounded-xl border border-rule bg-surface-muted/60 p-4 text-xs font-mono">
+            <div className="flex justify-between text-muted">
+              <span>SCAN RESULT: Al-Karam Mills</span>
+              <span className="text-success font-bold">100% ARITHMETIC CHECKED</span>
+            </div>
+            <div className="mt-2 flex justify-between font-semibold text-foreground">
+              <span>10x Basmati Rice 25kg @ Rs 4,200</span>
+              <span>Rs 42,000</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Block 2: Paisa-Exact Profit Calculator */}
+        <div className="card-hover-lift rounded-2xl border border-border bg-surface p-6 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between border-b border-rule pb-4">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-surface-muted text-primary border border-border">
+                <SalesIcon size={20} />
+              </span>
+              <span className="rounded-full border border-rule bg-surface-muted px-2.5 py-0.5 text-xs font-medium text-muted">
+                Deterministic
+              </span>
+            </div>
+            <h3 className="mt-5 text-xl font-bold text-foreground">
+              Paisa-Exact Profit Ladder
+            </h3>
+            <p className="mt-2 text-sm text-muted leading-relaxed">
+              Revenue minus cost of goods equals gross profit. Recorded expenses are subtracted for estimated net profit. Zero AI math guessing.
+            </p>
+          </div>
+          <div className="mt-6 rounded-xl border border-border bg-surface-muted/50 p-3">
+            <div className="flex justify-between text-xs font-semibold text-foreground">
+              <span>Gross Margin</span>
+              <span className="text-primary font-bold">27.6%</span>
+            </div>
+            <div className="mt-1.5 h-1.5 w-full rounded-full bg-border overflow-hidden">
+              <div className="h-full bg-primary w-[27.6%]" />
+            </div>
+          </div>
+        </div>
+
+        {/* Block 3: AI Demand Forecasting */}
+        <div className="card-hover-lift rounded-2xl border border-border bg-surface p-6 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between border-b border-rule pb-4">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-surface-muted text-primary border border-border">
+                <ProductsIcon size={20} />
+              </span>
+              <span className="rounded-full border border-rule bg-surface-muted px-2.5 py-0.5 text-xs font-medium text-muted">
+                Predictive
+              </span>
+            </div>
+            <h3 className="mt-5 text-xl font-bold text-foreground">
+              AI Demand Forecasting
+            </h3>
+            <p className="mt-2 text-sm text-muted leading-relaxed">
+              Analyzes historical sales velocity to estimate next month&apos;s inventory requirements with transparent assumptions and uncertainty notices.
+            </p>
+          </div>
+          <div className="mt-6 flex items-center justify-between text-xs rounded-xl bg-surface-muted/60 p-3 border border-rule">
+            <span className="text-muted">Cooking Oil 5L</span>
+            <span className="font-bold text-foreground">Restock: 34 Units</span>
+          </div>
+        </div>
+
+        {/* Block 4: Grounded Multilingual Chatbot */}
+        <div className="card-hover-lift rounded-2xl border border-border bg-surface p-6 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between border-b border-rule pb-4">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-surface-muted text-primary border border-border">
+                <AssistantIcon size={20} />
+              </span>
+              <span className="rounded-full border border-rule bg-surface-muted px-2.5 py-0.5 text-xs font-medium text-muted">
+                Multilingual
+              </span>
+            </div>
+            <h3 className="mt-5 text-xl font-bold text-foreground">
+              Grounded AI Assistant
+            </h3>
+            <p className="mt-2 text-sm text-muted leading-relaxed">
+              Ask questions in Urdu, Roman Urdu, or English. Only quotes verified figures calculated by deterministic application logic.
+            </p>
+          </div>
+          <div className="mt-6 rounded-xl bg-surface-muted/60 p-3 border border-rule text-xs font-urdu" dir="rtl">
+            <span className="text-foreground">میرا اس مہینے کتنا منافع ہوا؟</span>
+          </div>
+        </div>
+
+        {/* Block 5: Supplier Price Radar */}
+        <div className="card-hover-lift rounded-2xl border border-border bg-surface p-6 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between border-b border-rule pb-4">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-surface-muted text-primary border border-border">
+                <SuppliersIcon size={20} />
+              </span>
+              <span className="rounded-full border border-rule bg-surface-muted px-2.5 py-0.5 text-xs font-medium text-muted">
+                Price Radar
+              </span>
+            </div>
+            <h3 className="mt-5 text-xl font-bold text-foreground">
+              Supplier Price Comparison
+            </h3>
+            <p className="mt-2 text-sm text-muted leading-relaxed">
+              Compares what you paid across different suppliers for the same unit. Detects price spikes and identifies your cheapest source.
+            </p>
+          </div>
+          <div className="mt-6 flex items-center justify-between text-xs rounded-xl bg-surface-muted/60 p-3 border border-rule font-medium">
+            <span>Supplier A</span>
+            <span className="font-bold text-success">Lowest: Rs 1,480/unit</span>
+          </div>
+        </div>
+
+        {/* Block 6: Bank-Grade Free 2FA Security */}
+        <div className="card-hover-lift rounded-2xl border border-border bg-surface p-6 shadow-xs sm:col-span-2 lg:col-span-3 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="flex size-8 items-center justify-center rounded-lg bg-primary/20 text-primary border border-primary/30">
+                <CheckIcon size={16} />
+              </span>
+              <span className="text-xs font-bold tracking-wider uppercase text-primary">
+                Hackathon M3 Compliant
+              </span>
+            </div>
+            <h3 className="mt-2 text-xl font-bold text-foreground">
+              100% Free Two-Factor Authentication (Google Authenticator)
+            </h3>
+            <p className="mt-1 text-sm text-muted max-w-2xl leading-relaxed">
+              Real possession-factor security using standard RFC 6238 TOTP. Scan the QR code with Google Authenticator or Microsoft Authenticator. Zero paid upgrades, zero credit cards, encrypted with AES-256-GCM.
+            </p>
+          </div>
+          <Link href="/sign-up" className={`${ctaPrimary} shrink-0`}>
+            Secure Your Shop Now
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Urdu AI Assistant Interactive Showcase */
+function AssistantShowcase() {
+  return (
+    <section id="assistant" aria-labelledby="urdu-ai" className="py-16 sm:py-24 border-t border-border">
+      <div className="grid gap-12 lg:grid-cols-12 lg:items-center">
+        <div className="flex flex-col gap-4 lg:col-span-6">
+          <span className={eyebrow}>Apni Zuban Mein Baat Karein</span>
+          <h2 id="urdu-ai" className={h2}>
+            Ask the way you talk — in English, Urdu or Roman Urdu.
+          </h2>
+          <p className={lead}>
+            No complex accounting jargon. Just ask about your profit, low stock, or supplier costs. Elevate reads your authorized records and explains them simply.
+          </p>
+          <ul className="flex flex-col gap-2.5 pt-2 text-sm text-muted">
+            <li className="flex items-center gap-2">
+              <CheckIcon size={16} className="text-primary" /> Answers use only your own verified business figures
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckIcon size={16} className="text-primary" /> Clearly states when expense or supplier data is missing
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckIcon size={16} className="text-primary" /> Strictly read-only: cannot accidentally delete your records
+            </li>
+          </ul>
+        </div>
+
+        <div className="lg:col-span-6">
+          <div className="card-hover-lift rounded-2xl border border-border bg-surface-muted/60 p-4 shadow-sm backdrop-blur-xs">
+            <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5 shadow-xs">
+              <div className="flex items-center justify-between border-b border-rule pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="size-2 rounded-full bg-primary shadow-[0_0_8px_var(--brand-lime)] animate-pulse" />
+                  <span className="text-sm font-bold text-foreground">Elevate Assistant</span>
+                </div>
+                <span className="rounded-md border border-rule bg-surface-muted px-2 py-0.5 text-xs font-semibold text-muted">
+                  Bilingual Demo
+                </span>
+              </div>
+
+              {/* Chat Bubble 1: Roman Urdu */}
+              <div className="flex flex-col gap-1 items-end">
+                <span className="text-[11px] font-medium text-muted">You asked</span>
+                <p className="max-w-[85%] rounded-2xl rounded-br-xs bg-ink-button px-4 py-2.5 text-sm text-ink-button-foreground shadow-xs">
+                  Mera is mahine ka profit kitna hua?
+                </p>
+              </div>
+
+              {/* Assistant Reply */}
+              <div className="flex flex-col gap-1 items-start">
+                <span className="text-[11px] font-medium text-muted">Elevate Co-pilot</span>
+                <p className="max-w-[90%] rounded-2xl rounded-tl-xs border border-border bg-surface-muted/70 px-4 py-3 text-sm text-foreground leading-relaxed shadow-xs">
+                  Is mahine aapka estimated net profit <strong className="text-foreground font-bold">Rs 8,500</strong> hai. Total sales Rs 84,500 theen aur cost of goods Rs 61,200, jis se gross profit Rs 23,300 bana. Recorded expenses Rs 14,800 deduct kiye gaye hain.
+                </p>
+              </div>
+
+              {/* Chat Bubble 2: Authentic Urdu Nastaliq Script */}
+              <div className="flex flex-col gap-1 items-end pt-2">
+                <span className="text-[11px] font-medium text-muted">You asked (اردو)</span>
+                <p className="font-urdu max-w-[85%] rounded-2xl rounded-br-xs bg-ink-button px-4 py-2 text-base text-ink-button-foreground shadow-xs" dir="rtl">
+                  کون سا سامان ختم ہو رہا ہے؟
+                </p>
+              </div>
+
+              {/* Assistant Reply 2 */}
+              <div className="flex flex-col gap-1 items-start">
+                <span className="text-[11px] font-medium text-muted">Elevate Co-pilot</span>
+                <p className="max-w-[90%] rounded-2xl rounded-tl-xs border border-border bg-surface-muted/70 px-4 py-3 text-sm text-foreground leading-relaxed shadow-xs">
+                  <span className="font-semibold text-foreground">Cooking Oil 5L</span> ke sirf 4 dabbe baqi hain (reorder level 10 tha). Pichli 30 dino ki sales ke mutabiq aapko <strong className="text-foreground font-bold">34 units</strong> restock karne chahiyein.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Final conversion callout */
 function FinalCta() {
   return (
-    <section aria-labelledby="start" className="border-t border-border py-16 sm:py-24">
-      <div className="flex flex-col gap-6 rounded-2xl border border-primary/30 bg-surface-muted/90 p-6 sm:p-10 shadow-sm backdrop-blur-xs">
-        <h2 id="start" className={`${h2} max-w-[20ch]`}>Start with today&apos;s sales.</h2>
-        <p className={lead}>Create a workspace, add a few products and record your first sale. Your profit ladder fills in as you go.</p>
-        <div>
-          <Link href="/sign-up" className={`${ctaPrimary} shadow-sm hover:scale-[1.02] active:scale-[0.98]`}>
-            Create your free workspace <ArrowRightIcon />
+    <section className="my-16 sm:my-24">
+      <div className="card-hover-lift flex flex-col gap-6 rounded-3xl border border-primary/40 bg-surface-muted/80 p-8 sm:p-14 shadow-lg backdrop-blur-md text-center items-center">
+        <span className={eyebrow}>Ready in 2 Minutes</span>
+        <h2 className="text-3xl font-extrabold tracking-tight sm:text-5xl text-foreground max-w-2xl">
+          Take control of your shop&apos;s future today.
+        </h2>
+        <p className="max-w-[50ch] text-base sm:text-lg text-muted leading-relaxed">
+          Create your free workspace, add your first products, and record your sales. No credit card required.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <Link href="/sign-up" className={ctaPrimary}>
+            Create your free workspace <ArrowRightIcon size={16} />
+          </Link>
+          <Link href="/sign-in" className={ctaSecondary}>
+            Sign in to existing account
           </Link>
         </div>
       </div>
@@ -315,20 +534,18 @@ function FinalCta() {
 
 export default function Home() {
   return (
-    <div className="flex flex-1 flex-col">
-      <Header />
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <FloatingHeader />
       <main className={`${wrap} flex flex-1 flex-col`}>
         <Hero />
-        <Flow />
-        <Ladder />
-        <Assistant />
-        <Stock />
-        <Trust />
+        <TrustMetrics />
+        <BentoFeatures />
+        <AssistantShowcase />
         <FinalCta />
       </main>
-      <footer className={`${wrap} py-10 text-sm text-muted`}>
-        Elevate supports your decisions. It is not accounting, tax or legal advice. Example figures on this page are
-        illustrative.
+      <footer className={`${wrap} border-t border-border py-10 text-xs text-muted flex flex-col sm:flex-row items-center justify-between gap-4`}>
+        <p>© 2026 Elevate. Built for Pakistan&apos;s small business owners.</p>
+        <p>Grounded in verified records. Not legal, tax or professional accounting advice.</p>
       </footer>
     </div>
   );

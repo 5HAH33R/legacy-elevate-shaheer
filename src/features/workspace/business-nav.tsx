@@ -75,14 +75,14 @@ export function BusinessNav({ onNavigate }: { onNavigate?: () => void }) {
                 aria-current={active ? "page" : undefined}
                 className={`group flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-sm transition-all duration-150 ${
                   active
-                    ? "bg-active font-semibold text-foreground shadow-xs border-l-2 border-primary"
+                    ? "bg-active font-semibold text-foreground shadow-xs border border-border/90 dark:border-primary/50"
                     : "text-muted hover:bg-active/60 hover:text-foreground hover:translate-x-0.5"
                 }`}
               >
-                <Icon className={active ? "text-primary" : "text-muted group-hover:text-foreground transition-colors"} />
+                <Icon className={active ? "text-foreground dark:text-primary" : "text-muted group-hover:text-foreground transition-colors"} />
                 <span>{label}</span>
                 {active ? (
-                  <span aria-hidden="true" className="ml-auto size-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--brand-lime)]" />
+                  <span aria-hidden="true" className="ml-auto size-2 rounded-full bg-primary ring-1 ring-black/15 dark:ring-0 dark:shadow-[0_0_8px_var(--brand-lime)]" />
                 ) : null}
               </Link>
             );
