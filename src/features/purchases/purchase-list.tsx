@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { formatMoney } from "@/lib/money";
 import type { Purchase } from "@/server/purchases";
 import { emptyStateClass, panelClass } from "@/features/auth/ui";
@@ -32,7 +33,20 @@ export function PurchaseList({
                   </span>
                 ) : null}
               </p>
-              <p className="num text-xs text-muted">{p.date}</p>
+              <p className="num text-xs text-muted">
+                {p.date}
+                {p.sourceDocumentId ? (
+                  <>
+                    {" · "}
+                    <Link
+                      href={`/dashboard/${businessId}/invoices/${p.sourceDocumentId}`}
+                      className="font-medium text-foreground hover:underline"
+                    >
+                      From scanned invoice
+                    </Link>
+                  </>
+                ) : null}
+              </p>
             </div>
             <span className={`num shrink-0 font-semibold ${p.voidedAt ? "line-through" : ""}`}>
               {formatMoney(p.total, currency)}

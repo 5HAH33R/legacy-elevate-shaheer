@@ -47,6 +47,7 @@ const aiEnvSchema = z.object({
   AI_API_KEY: z.string().trim().min(1),
   AI_MODEL: z.string().trim().min(1).default("gemini-3.5-flash-lite"),
   AI_DAILY_LIMIT: z.coerce.number().int().min(1).max(1000).default(30),
+  AI_INVOICE_DAILY_LIMIT: z.coerce.number().int().min(1).max(500).default(15),
 });
 
 export type AiConfig = z.infer<typeof aiEnvSchema>;
@@ -60,6 +61,7 @@ export function getAiConfig(): AiConfig | null {
     AI_API_KEY: blankToUndefined(process.env.AI_API_KEY),
     AI_MODEL: blankToUndefined(process.env.AI_MODEL),
     AI_DAILY_LIMIT: blankToUndefined(process.env.AI_DAILY_LIMIT),
+    AI_INVOICE_DAILY_LIMIT: blankToUndefined(process.env.AI_INVOICE_DAILY_LIMIT),
   });
   if (!result.success) {
     if (process.env.AI_API_KEY) {

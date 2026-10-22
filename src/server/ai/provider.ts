@@ -37,6 +37,9 @@ export class AiError extends Error {
 const REQUEST_TIMEOUT_MS = 25_000;
 // Thinking models spend part of this budget on reasoning before the answer.
 const MAX_OUTPUT_TOKENS = 2048;
+// Reading a document takes longer and returns more (up to 50 invoice lines).
+const DOCUMENT_TIMEOUT_MS = 45_000;
+const DOCUMENT_MAX_OUTPUT_TOKENS = 8192;
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 
 const geminiResponseSchema = z.object({
@@ -67,25 +70,26 @@ const BLOCKED_REASONS = new Set(["SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "S
 
 type FetchLike = typeof fetch;
 
-async function callGemini(
-  config: AiConfig,
-  system: string,
-  turns: readonly ChatTurn[],
-  fetchImpl: FetchLike,
-): Promise<AiAnswer> {
+type GeminiPart = { text: string } | { inlineData: { mimeType: string; data: string } };
+
+type GeminiRequest = {
+  system: string;
+  contents: { role: "user" | "model"; parts: GeminiPart[] }[];
+  generationConfig: Record<string, unknown>;
+  timeoutMs: number;
+};
+
+async function callGemini(config: AiConfig, request: GeminiRequest, fetchImpl: FetchLike): Promise<AiAnswer> {
   const url = `${GEMINI_BASE_URL}/${encodeURIComponent(config.AI_MODEL)}:generateContent`;
   const response = await fetchImpl(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": config.AI_API_KEY },
     body: JSON.stringify({
-      systemInstruction: { parts: [{ text: system }] },
-      contents: turns.map((t) => ({
-        role: t.role === "assistant" ? "model" : "user",
-        parts: [{ text: t.text }],
-      })),
-      generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS },
+      systemInstruction: { parts: [{ text: request.system }] },
+      contents: request.contents,
+      generationConfig: request.generationConfig,
     }),
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    signal: AbortSignal.timeout(request.timeoutMs),
   });
 
   if (!response.ok) {
@@ -142,18 +146,11 @@ function isTransient(error: unknown): boolean {
   return error instanceof TypeError || (error instanceof Error && error.name === "TimeoutError");
 }
 
-/**
- * Ask the hosted model. Retries once on network errors, timeouts and 5xx;
- * never on quota, safety or bad-request errors.
- */
-export async function generateAnswer(
-  config: AiConfig,
-  input: { system: string; turns: readonly ChatTurn[] },
-  fetchImpl: FetchLike = fetch,
-): Promise<AiAnswer> {
+/** One retry on network errors, timeouts and 5xx; never on quota, safety or bad requests. */
+async function withRetry(config: AiConfig, request: GeminiRequest, fetchImpl: FetchLike): Promise<AiAnswer> {
   for (let attempt = 1; ; attempt++) {
     try {
-      return await callGemini(config, input.system, input.turns, fetchImpl);
+      return await callGemini(config, request, fetchImpl);
     } catch (error) {
       if (attempt < 2 && isTransient(error)) continue;
       if (error instanceof AiError) throw error;
@@ -161,4 +158,52 @@ export async function generateAnswer(
       throw new AiError("unavailable", "The AI service could not be reached. Please try again.");
     }
   }
+}
+
+/** Ask the hosted model a chat question. */
+export async function generateAnswer(
+  config: AiConfig,
+  input: { system: string; turns: readonly ChatTurn[] },
+  fetchImpl: FetchLike = fetch,
+): Promise<AiAnswer> {
+  return withRetry(
+    config,
+    {
+      system: input.system,
+      contents: input.turns.map((t) => ({
+        role: t.role === "assistant" ? "model" : "user",
+        parts: [{ text: t.text }],
+      })),
+      generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS },
+      timeoutMs: REQUEST_TIMEOUT_MS,
+    },
+    fetchImpl,
+  );
+}
+
+/**
+ * Read a document (image or PDF, base64) and return the model's JSON text.
+ * The caller parses and validates it; the file is sent inline and is not
+ * stored by Elevate.
+ */
+export async function extractDocumentJson(
+  config: AiConfig,
+  input: { system: string; instruction: string; mimeType: string; base64: string },
+  fetchImpl: FetchLike = fetch,
+): Promise<AiAnswer> {
+  return withRetry(
+    config,
+    {
+      system: input.system,
+      contents: [
+        {
+          role: "user",
+          parts: [{ inlineData: { mimeType: input.mimeType, data: input.base64 } }, { text: input.instruction }],
+        },
+      ],
+      generationConfig: { maxOutputTokens: DOCUMENT_MAX_OUTPUT_TOKENS, responseMimeType: "application/json" },
+      timeoutMs: DOCUMENT_TIMEOUT_MS,
+    },
+    fetchImpl,
+  );
 }

@@ -59,7 +59,18 @@ Set up: create a free key at [Google AI Studio](https://aistudio.google.com/apik
 
 Tests: `tests/ai-assistant.test.ts` (auth, cross-business isolation, figures match the dashboard, saved conversations, no record writes, failures, rate limit) and `src/lib/language.test.ts`. The AI provider is stubbed in tests; no network calls.
 
-Invoices come in a later phase.
+### Phase 7: smart invoice analysis
+
+**Invoices** (`/dashboard/[businessId]/invoices`, "Scan invoices" in the sidebar): the owner uploads a photo (JPG, PNG, WebP) or PDF of a supplier bill, Gemini reads it, the owner reviews every line, and only then is it recorded as a purchase (SPEC 5.1, 9.8).
+
+- **Upload** (`POST /api/businesses/[businessId]/invoices`, multipart `file`): `requireUser()` → `requireBusinessOwner()` first. Files are checked by size (≤ 4 MB, under serverless request limits) and by their real type from the first bytes, not only the browser's label. The file is sent once, inline, to the AI service and is **not stored** (`filePath` is always `null`), so no Storage bucket or Blaze plan is needed and no invoice file can become public.
+- **Reading** (`src/server/invoices.ts`, `extractDocumentJson` in `src/server/ai/provider.ts`): the model returns JSON only (supplier, number, date, lines, subtotal, tax, total, what it could not read). `src/lib/invoices.ts` validates it, converts amounts to integer minor units and **flags instead of guessing**: missing supplier/date/total, impossible or future dates, non-whole quantities, line totals that do not match quantity × unit price, lines that do not add up to the subtotal, subtotal + tax ≠ total (1 rupee rounding allowed), and not-an-invoice documents.
+- **Review** (`/invoices/[invoiceId]`): saved as `invoices/{id}` with `reviewStatus: "needs_review"`. The owner picks an existing supplier (suggested by name) or a new one, checks the date, matches each line to a product (suggested by name), fixes quantity/unit/cost or skips the line, and sees the kept total against the printed total.
+- **Confirm** (`POST …/invoices/[invoiceId]/confirm`): reuses `recordPurchaseForBusiness`, so stock goes up, product costs follow the purchase and `purchases.sourceDocumentId` links back to the invoice. Idempotent on a client `purchaseId`; a new supplier is created at most once per invoice. A confirmed invoice cannot be confirmed again with another purchase; a discarded one cannot be confirmed.
+- **Discard** (`DELETE …/invoices/[invoiceId]`): marks the scan `discarded`; nothing else changes.
+- **Limits**: `AI_INVOICE_DAILY_LIMIT` scans per user per day (default 15, `aiUsage/{uid}_{date}_invoices`) → 429. No `AI_API_KEY` → 503 "not configured".
+
+Tests: `src/lib/invoices.test.ts` (amount parsing, every flag, product/supplier suggestions) and `tests/invoices.test.ts` (auth, other owners get 404 and the AI is never called, real file-type check, size limit, nothing recorded before confirm, confirm adds stock once, new supplier created once, cross-business products rejected, discard, daily limit).
 
 ## How authentication works
 

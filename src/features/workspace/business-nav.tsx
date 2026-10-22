@@ -10,6 +10,7 @@ import {
   PurchasesIcon,
   SalesIcon,
   SuppliersIcon,
+  InvoiceScanIcon,
 } from "@/components/icons";
 
 /**
@@ -36,6 +37,7 @@ export function BusinessNav({ onNavigate }: { onNavigate?: () => void }) {
     {
       label: "Buying",
       items: [
+        { href: `${base}/invoices`, label: "Scan invoices", Icon: InvoiceScanIcon, exact: false },
         { href: `${base}/suppliers`, label: "Suppliers", Icon: SuppliersIcon, exact: false },
         { href: `${base}/purchases`, label: "Purchases", Icon: PurchasesIcon, exact: false },
       ],

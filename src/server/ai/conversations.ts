@@ -193,16 +193,32 @@ export async function consumeDailyQuestion(
   limit: number,
   db: Firestore = getAdminDb(),
 ): Promise<void> {
-  const ref = db.collection("aiUsage").doc(`${uid}_${today}`);
+  await consumeDailyAiUse(uid, today, limit, "questions", db);
+}
+
+/**
+ * The shared daily counter behind every AI feature. Each kind has its own
+ * count (aiUsage/{uid}_{date} for questions, …_{kind} for the rest).
+ */
+export async function consumeDailyAiUse(
+  uid: string,
+  today: string,
+  limit: number,
+  kind: "questions" | "invoices",
+  db: Firestore = getAdminDb(),
+): Promise<void> {
+  const id = kind === "questions" ? `${uid}_${today}` : `${uid}_${today}_${kind}`;
+  const ref = db.collection("aiUsage").doc(id);
+  const noun = kind === "questions" ? "assistant questions" : "invoice scans";
   await db.runTransaction(async (tx) => {
     const snapshot = await tx.get(ref);
     const count = typeof snapshot.data()?.count === "number" ? (snapshot.data()?.count as number) : 0;
     if (count >= limit) {
       throw new ApiError(
         429,
-        `You have reached today's limit of ${limit} assistant questions. Please try again tomorrow.`,
+        `You have reached today's limit of ${limit} ${noun}. Please try again tomorrow.`,
       );
     }
-    tx.set(ref, { uid, date: today, count: count + 1 });
+    tx.set(ref, { uid, date: today, kind, count: count + 1 });
   });
 }

@@ -17,7 +17,7 @@ function Nav({ onNavigate }: { onNavigate?: () => void }) {
     <Suspense
       fallback={
         <div aria-hidden="true" className="flex flex-col gap-2">
-          {Array.from({ length: 7 }, (_, i) => (
+          {Array.from({ length: 8 }, (_, i) => (
             <div key={i} className="h-9 rounded-lg bg-active/50" />
           ))}
         </div>
