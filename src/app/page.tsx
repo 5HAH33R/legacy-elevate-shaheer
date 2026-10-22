@@ -69,36 +69,39 @@ function Header() {
 
 function OverviewPreview() {
   return (
-    <figure className="rounded-2xl border border-border bg-surface-muted p-3 sm:p-4">
-      <div className="rounded-xl border border-border bg-surface">
+    <figure className="rounded-2xl border border-border bg-surface-muted/70 p-3 sm:p-4 shadow-sm card-hover-lift backdrop-blur-xs">
+      <div className="rounded-xl border border-border bg-surface shadow-xs">
         <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-5">
-          <span className="text-sm font-semibold">Overview · This month</span>
-          <span className="rounded-md border border-control px-2 py-0.5 text-xs text-muted">Example</span>
+          <div className="flex items-center gap-2">
+            <span className="size-2 rounded-full bg-primary shadow-[0_0_8px_var(--brand-lime)] animate-pulse" />
+            <span className="text-sm font-semibold">Overview · This month</span>
+          </div>
+          <span className="rounded-md border border-control bg-surface-muted px-2 py-0.5 text-xs font-medium text-muted">Verified Numbers</span>
         </div>
         <ol className="px-4 py-1 text-sm sm:px-5">
           {LADDER.map((r) => (
-            <li key={r.label} className={`flex items-baseline gap-3 border-t border-rule py-3 first:border-t-0 ${r.strong ? "font-semibold" : ""}`}>
-              <span aria-hidden="true" className="w-4 shrink-0 text-center text-muted">{r.op}</span>
+            <li key={r.label} className={`flex items-baseline gap-3 border-t border-rule py-3 first:border-t-0 ${r.strong ? "font-bold text-foreground" : ""}`}>
+              <span aria-hidden="true" className="w-4 shrink-0 text-center font-medium text-muted">{r.op}</span>
               <span className="min-w-0 flex-1">
                 {r.label}
                 <span className="block text-xs font-normal text-muted">{r.note}</span>
               </span>
-              <span className="num whitespace-nowrap">{r.value}</span>
+              <span className="num whitespace-nowrap text-foreground">{r.value}</span>
             </li>
           ))}
         </ol>
-        <div className="border-t border-border px-4 py-3 sm:px-5">
+        <div className="border-t border-border bg-surface-muted/30 px-4 py-3 sm:px-5">
           <p className="flex items-start gap-2 text-sm">
             <AlertIcon size={16} className="mt-0.5 shrink-0 text-warning" />
             <span>
-              <span className="font-medium">Low stock: Cooking oil 5L.</span>{" "}
+              <span className="font-semibold text-foreground">Low stock: Cooking oil 5L.</span>{" "}
               <span className="text-muted">4 left, reorder level 10.</span>
             </span>
           </p>
         </div>
       </div>
       <figcaption className="px-2 pt-3 text-xs text-muted">
-        Example figures, not a real shop. Revenue − cost of goods = gross profit; gross profit − expenses = estimated net profit.
+        Example figures. Revenue − cost of goods = gross profit; gross profit − expenses = estimated net profit.
       </figcaption>
     </figure>
   );
@@ -107,20 +110,23 @@ function OverviewPreview() {
 function Hero() {
   return (
     <section className="grid gap-12 py-14 sm:py-20 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:items-center">
-      <div className="flex flex-col gap-6">
-        <p className={eyebrow}>For small shops and businesses in Pakistan</p>
-        <h1 className="text-5xl leading-[1.02] font-semibold tracking-tight sm:text-6xl lg:text-7xl">
-          Trust your shop&apos;s numbers.
+      <div className="flex flex-col gap-6 animate-fade-in">
+        <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/30 bg-surface-muted/90 px-3.5 py-1 text-xs font-semibold tracking-wide text-foreground shadow-xs">
+          <span className="size-2 rounded-full bg-primary shadow-[0_0_8px_var(--brand-lime)] animate-pulse" />
+          AI-Powered Business Assistant for Pakistan
+        </div>
+        <h1 className="text-5xl leading-[1.02] font-extrabold tracking-tight sm:text-6xl lg:text-7xl">
+          Trust your shop&apos;s <span className="underline decoration-primary/80 underline-offset-8">real numbers</span>.
         </h1>
-        <p className="max-w-[52ch] text-lg text-muted">
-          Elevate keeps your stock, sales, expenses and suppliers in one register, works out your profit, and answers
+        <p className="max-w-[52ch] text-lg text-muted leading-relaxed">
+          Elevate keeps your stock, sales, expenses and suppliers in one register, works out your real profit, and answers
           your questions in English, Urdu or Roman Urdu.
         </p>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Link href="/sign-up" className={ctaPrimary}>
+        <div className="flex flex-col gap-3 sm:flex-row pt-2">
+          <Link href="/sign-up" className={`${ctaPrimary} shadow-sm hover:scale-[1.02] active:scale-[0.98]`}>
             Create your free workspace <ArrowRightIcon />
           </Link>
-          <Link href="/sign-in" className={ctaSecondary}>Sign in</Link>
+          <Link href="/sign-in" className={`${ctaSecondary} active:scale-[0.98]`}>Sign in</Link>
         </div>
       </div>
       <OverviewPreview />
@@ -237,27 +243,27 @@ function Stock() {
       <p className={eyebrow}>Stock and suppliers</p>
       <h2 id="stock" className={`${h2} mt-2 max-w-[24ch]`}>Know what to reorder, and where it&apos;s cheapest.</h2>
       <div className="mt-10 grid gap-6 lg:grid-cols-2">
-        <article className="rounded-xl border border-border bg-surface p-5 sm:p-6">
-          <h3 className="flex items-center gap-2 text-lg font-semibold"><ProductsIcon size={18} className="text-muted" /> Low-stock alerts and restock estimates</h3>
-          <p className="mt-2 text-sm text-muted">
+        <article className="rounded-xl border border-border bg-surface p-5 sm:p-6 card-hover-lift shadow-xs">
+          <h3 className="flex items-center gap-2 text-lg font-semibold"><ProductsIcon size={18} className="text-primary" /> Low-stock alerts and restock estimates</h3>
+          <p className="mt-2 text-sm text-muted leading-relaxed">
             Elevate suggests a quantity from your last 30 days of sales: daily sales × 14 days, plus your reorder level,
             minus what you have. With fewer than 3 days of sales it says there is not enough history.
           </p>
-          <p className="mt-4 text-xs font-medium text-muted">Example: Cooking oil 5L</p>
-          <p className="num mt-1 text-sm">60 sold ÷ 30 × 14 + 10 − 4 = <span className="font-semibold">34 units (estimate)</span></p>
+          <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted">Example: Cooking oil 5L</p>
+          <p className="num mt-1 text-sm bg-surface-muted/60 p-2.5 rounded-lg border border-rule">60 sold ÷ 30 × 14 + 10 − 4 = <span className="font-bold text-foreground">34 units (estimate)</span></p>
         </article>
-        <article className="rounded-xl border border-border bg-surface p-5 sm:p-6">
-          <h3 className="flex items-center gap-2 text-lg font-semibold"><SuppliersIcon size={18} className="text-muted" /> Supplier price comparison</h3>
-          <p className="mt-2 text-sm text-muted">
+        <article className="rounded-xl border border-border bg-surface p-5 sm:p-6 card-hover-lift shadow-xs">
+          <h3 className="flex items-center gap-2 text-lg font-semibold"><SuppliersIcon size={18} className="text-primary" /> Supplier price comparison</h3>
+          <p className="mt-2 text-sm text-muted leading-relaxed">
             Compares what you actually paid each supplier, with purchase dates. It uses your records only, not market prices.
           </p>
-          <p className="mt-4 text-xs font-medium text-muted">Example: Cooking oil 5L, per unit</p>
-          <ul className="num mt-1 text-sm">
+          <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted">Example: Cooking oil 5L, per unit</p>
+          <ul className="num mt-1 text-sm bg-surface-muted/60 px-3 py-1 rounded-lg border border-rule">
             {[["Supplier A", "Rs 1,480", "Lowest paid"], ["Supplier B", "Rs 1,525", ""], ["Supplier C", "Rs 1,560", ""]].map(([n, p, tag]) => (
               <li key={n} className="flex items-center justify-between gap-3 border-t border-rule py-2 first:border-t-0">
-                <span>{n}</span>
-                <span className="flex items-center gap-2">
-                  {tag ? <span className="inline-flex items-center gap-1 text-xs text-success"><CheckIcon size={12} />{tag}</span> : null}
+                <span className="font-medium">{n}</span>
+                <span className="flex items-center gap-2 font-semibold">
+                  {tag ? <span className="inline-flex items-center gap-1 text-xs text-success bg-success-bg/80 px-2 py-0.5 rounded-full"><CheckIcon size={12} />{tag}</span> : null}
                   {p}
                 </span>
               </li>
@@ -279,11 +285,11 @@ function Trust() {
     <section aria-labelledby="trust" className="border-t border-border py-16 sm:py-24">
       <p className={eyebrow}>Trust and privacy</p>
       <h2 id="trust" className={`${h2} mt-2`}>Your books stay yours.</h2>
-      <div className="mt-10 grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-3">
+      <div className="mt-10 grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-3 shadow-xs">
         {items.map(([t, b]) => (
-          <div key={t} className="bg-surface p-6">
+          <div key={t} className="bg-surface p-6 transition-colors duration-150 hover:bg-surface-muted/40">
             <h3 className="text-base font-semibold">{t}</h3>
-            <p className="mt-2 text-sm text-muted">{b}</p>
+            <p className="mt-2 text-sm text-muted leading-relaxed">{b}</p>
           </div>
         ))}
       </div>
@@ -294,11 +300,11 @@ function Trust() {
 function FinalCta() {
   return (
     <section aria-labelledby="start" className="border-t border-border py-16 sm:py-24">
-      <div className="flex flex-col gap-6 rounded-2xl bg-surface-muted p-6 sm:p-10">
+      <div className="flex flex-col gap-6 rounded-2xl border border-primary/30 bg-surface-muted/90 p-6 sm:p-10 shadow-sm backdrop-blur-xs">
         <h2 id="start" className={`${h2} max-w-[20ch]`}>Start with today&apos;s sales.</h2>
         <p className={lead}>Create a workspace, add a few products and record your first sale. Your profit ladder fills in as you go.</p>
         <div>
-          <Link href="/sign-up" className={ctaPrimary}>
+          <Link href="/sign-up" className={`${ctaPrimary} shadow-sm hover:scale-[1.02] active:scale-[0.98]`}>
             Create your free workspace <ArrowRightIcon />
           </Link>
         </div>

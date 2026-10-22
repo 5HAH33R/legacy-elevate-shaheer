@@ -77,7 +77,9 @@ const userRef = (uid: string) => getAdminDb().collection("users").doc(uid);
 
 export async function isMfaEnabled(uid: string): Promise<boolean> {
   const snap = await userRef(uid).get();
-  return snap.exists && snap.get("mfaEnabled") === true;
+  const data = typeof snap.data === "function" ? snap.data() : undefined;
+  if (data) return snap.exists && data.mfaEnabled === true;
+  return snap.exists && typeof (snap as { get?: (k: string) => unknown }).get === "function" && (snap as { get: (k: string) => unknown }).get("mfaEnabled") === true;
 }
 
 type Field = "mfaSecret" | "mfaPendingSecret";
@@ -91,14 +93,16 @@ async function consumeCode(uid: string, field: Field, code: string, now = Date.n
   const ref = userRef(uid);
   const outcome = await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
-    const enc = snap.get(field) as string | undefined;
+    const data = typeof snap.data === "function" ? snap.data() : undefined;
+    const getVal = (f: string) => (data ? data[f] : typeof (snap as { get?: (k: string) => unknown }).get === "function" ? (snap as { get: (k: string) => unknown }).get(f) : undefined);
+    const enc = getVal(field) as string | undefined;
     if (!enc) return { kind: "none" as const };
-    const lockedUntil = (snap.get("mfaLockedUntil") as number | undefined) ?? 0;
+    const lockedUntil = (getVal("mfaLockedUntil") as number | undefined) ?? 0;
     if (lockedUntil > now) return { kind: "locked" as const };
-    const lastStep = (snap.get("mfaLastStep") as number | undefined) ?? -1;
+    const lastStep = (getVal("mfaLastStep") as number | undefined) ?? -1;
     const step = verifyTotp(decryptSecret(enc), code, now, lastStep);
     if (step === null) {
-      const attempts = ((snap.get("mfaFailedAttempts") as number | undefined) ?? 0) + 1;
+      const attempts = ((getVal("mfaFailedAttempts") as number | undefined) ?? 0) + 1;
       if (attempts >= MAX_ATTEMPTS) {
         tx.update(ref, { mfaFailedAttempts: 0, mfaLockedUntil: now + LOCK_MS });
       } else {

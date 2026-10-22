@@ -116,14 +116,17 @@ export function BusinessScope({
   detail: string;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-surface px-3 py-2.5">
-      <p className="truncate text-sm font-semibold" title={name}>
-        {name}
-      </p>
-      <div className="mt-0.5 flex items-center justify-between gap-2 text-xs text-muted">
+    <div className="rounded-xl border border-border bg-surface p-3 shadow-xs card-hover-lift">
+      <div className="flex items-center gap-2">
+        <span className="size-2 rounded-full bg-primary shadow-[0_0_8px_var(--brand-lime)]" />
+        <p className="truncate text-sm font-bold text-foreground" title={name}>
+          {name}
+        </p>
+      </div>
+      <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-muted">
         <span className="truncate">{detail}</span>
-        <Link href="/dashboard" className="shrink-0 font-medium text-foreground hover:underline">
-          Switch
+        <Link href="/dashboard" className="shrink-0 font-medium text-foreground hover:text-primary transition-colors">
+          Switch →
         </Link>
       </div>
     </div>

@@ -44,21 +44,22 @@ function FiguresUsed({ message }: { message: AssistantMessage }) {
 function MessageBubble({ message }: { message: AssistantMessage }) {
   if (message.role === "user") {
     return (
-      <li className="max-w-[85%] self-end rounded-xl rounded-br-sm bg-ink-button px-4 py-2.5 text-sm text-ink-button-foreground">
+      <li className="max-w-[85%] self-end rounded-2xl rounded-br-xs bg-ink-button px-4 py-2.5 text-sm text-ink-button-foreground shadow-xs animate-fade-in">
         <span className="sr-only">You asked: </span>
-        <p dir="auto" className="whitespace-pre-wrap">
+        <p dir="auto" className="whitespace-pre-wrap leading-relaxed">
           {message.text}
         </p>
       </li>
     );
   }
   return (
-    <li className="max-w-[95%] rounded-xl rounded-bl-sm border border-border bg-surface-muted px-4 py-3 text-sm">
-      <p className="mb-1 inline-flex items-center gap-1 text-xs font-medium text-muted">
-        <AssistantIcon size={14} className="text-chart" />
-        AI-generated — check important numbers on your Overview
-      </p>
-      <p dir="auto" className="whitespace-pre-wrap leading-relaxed">
+    <li className="max-w-[95%] rounded-2xl rounded-tl-xs border border-border bg-surface px-4.5 py-3.5 text-sm shadow-xs animate-fade-in">
+      <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-muted">
+        <span className="size-2 rounded-full bg-primary shadow-[0_0_6px_var(--brand-lime)] animate-pulse" />
+        <span className="text-foreground">Elevate Assistant</span>
+        <span className="text-muted font-normal">· Grounded in your records</span>
+      </div>
+      <p dir="auto" className="whitespace-pre-wrap leading-relaxed text-foreground">
         {message.text}
       </p>
       {message.truncated ? (
