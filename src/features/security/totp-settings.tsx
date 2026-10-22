@@ -2,16 +2,6 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import {
-  EmailAuthProvider,
-  multiFactor,
-  onAuthStateChanged,
-  reauthenticateWithCredential,
-  TotpMultiFactorGenerator,
-  type TotpSecret,
-  type User,
-} from "firebase/auth";
-import { getClientAuth } from "@/lib/firebase/client";
-import {
   errorTextClass,
   fieldClass,
   inputClass,
@@ -22,132 +12,94 @@ import {
   secondaryButtonClass,
   successTextClass,
 } from "@/features/auth/ui";
+import { QrCode } from "./qr-code";
 
-function isRecentLoginError(err: unknown) {
-  return (err as { code?: string }).code === "auth/requires-recent-login";
+async function post(url: string, body?: unknown) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = (await res.json().catch(() => null)) as Record<string, string> | null;
+  if (!res.ok) throw new Error(data?.error ?? "Something went wrong. Please try again.");
+  return data ?? {};
 }
 
 export function TotpSettings() {
-  const [user, setUser] = useState<User | null>(null);
-  const [ready, setReady] = useState(false);
-  const [, bump] = useState(0);
-  const [secret, setSecret] = useState<TotpSecret | null>(null);
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [setup, setSetup] = useState<{ secret: string; uri: string } | null>(null);
+  const [disabling, setDisabling] = useState(false);
   const [code, setCode] = useState("");
-  const [password, setPassword] = useState("");
-  const [needPassword, setNeedPassword] = useState<null | "start" | "disable">(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  useEffect(
-    () =>
-      onAuthStateChanged(getClientAuth(), (u) => {
-        setUser(u);
-        setReady(true);
-      }),
-    [],
-  );
+  useEffect(() => {
+    fetch("/api/auth/2fa/setup")
+      .then((r) => r.json())
+      .then((d: { enabled?: boolean }) => setEnabled(d.enabled === true))
+      .catch(() => setError("Could not load 2FA status."));
+  }, []);
 
-  const factors = user ? multiFactor(user).enrolledFactors : [];
-  const totp = factors.find((f) => f.factorId === TotpMultiFactorGenerator.FACTOR_ID);
-
-  async function start() {
-    if (!user) return;
+  async function run(fn: () => Promise<void>) {
     setError(null);
     setMessage(null);
     setPending(true);
     try {
-      const session = await multiFactor(user).getSession();
-      setSecret(await TotpMultiFactorGenerator.generateSecret(session));
-      setNeedPassword(null);
+      await fn();
     } catch (err) {
-      if (isRecentLoginError(err)) {
-        setNeedPassword("start");
-        setError("For your security, enter your password again to continue.");
-      } else {
-        setError(
-          user.emailVerified === false && (err as { code?: string }).code === "auth/unverified-email"
-            ? "Verify your email address before turning on 2FA."
-            : "Could not start setup. Check that two-step verification is enabled for this project, then try again.",
-        );
-      }
+      setError(err instanceof Error ? err.message : "Something went wrong.");
     }
     setPending(false);
   }
 
-  async function confirm(event: FormEvent) {
-    event.preventDefault();
-    if (!user || !secret) return;
-    setError(null);
-    if (!/^\d{6}$/.test(code)) {
-      setError("Enter the 6-digit code from your authenticator app.");
-      return;
-    }
-    setPending(true);
-    try {
-      const assertion = TotpMultiFactorGenerator.assertionForEnrollment(secret, code);
-      await multiFactor(user).enroll(assertion, "Authenticator app");
-      setSecret(null);
+  const start = () =>
+    run(async () => {
+      const d = await post("/api/auth/2fa/setup");
+      setSetup({ secret: d.secret, uri: d.uri });
       setCode("");
+    });
+
+  const confirm = (e: FormEvent) => {
+    e.preventDefault();
+    return run(async () => {
+      await post("/api/auth/2fa/verify-setup", { code });
+      setSetup(null);
+      setCode("");
+      setEnabled(true);
       setMessage("2FA is now enabled. You will be asked for a code each time you sign in.");
-      bump((n) => n + 1);
-    } catch (err) {
-      const c = (err as { code?: string }).code;
-      setError(
-        c === "auth/invalid-verification-code"
-          ? "That code is not correct. Wait for the next code and try again."
-          : c === "auth/requires-recent-login"
-            ? "Your sign-in is too old. Sign out, sign in again and retry."
-            : "Could not turn on 2FA. Please try again.",
-      );
-    }
-    setPending(false);
-  }
+    });
+  };
 
-  async function disable() {
-    if (!user || !totp) return;
-    setError(null);
-    setPending(true);
-    try {
-      await multiFactor(user).unenroll(totp);
+  const disable = (e: FormEvent) => {
+    e.preventDefault();
+    return run(async () => {
+      await post("/api/auth/2fa/disable", { code });
+      setDisabling(false);
+      setCode("");
+      setEnabled(false);
       setMessage("2FA is now disabled.");
-      bump((n) => n + 1);
-    } catch (err) {
-      if (isRecentLoginError(err)) {
-        setNeedPassword("disable");
-        setError("For your security, enter your password again to continue.");
-      } else {
-        setError("Could not turn off 2FA. Please try again.");
-      }
-    }
-    setPending(false);
-  }
+    });
+  };
 
-  async function reauth(event: FormEvent) {
-    event.preventDefault();
-    if (!user?.email || !needPassword) return;
-    setPending(true);
-    setError(null);
-    try {
-      await reauthenticateWithCredential(
-        user,
-        EmailAuthProvider.credential(user.email, password),
-      );
-      const next = needPassword;
-      setPassword("");
-      setNeedPassword(null);
-      setPending(false);
-      if (next === "start") await start();
-      else await disable();
-      return;
-    } catch {
-      setError("Password is not correct.");
-    }
-    setPending(false);
-  }
+  if (enabled === null && !error) return <p className="text-sm text-muted">Loading…</p>;
 
-  if (!ready) return <p className="text-sm text-muted">Loading…</p>;
-  if (!user) return <p className="text-sm text-muted">Sign in again to manage security.</p>;
+  const codeField = (id: string) => (
+    <div className={fieldClass}>
+      <label htmlFor={id} className={labelClass}>
+        6-digit code
+      </label>
+      <input
+        id={id}
+        inputMode="numeric"
+        autoComplete="one-time-code"
+        maxLength={6}
+        value={code}
+        onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+        className={inputClass}
+      />
+    </div>
+  );
 
   return (
     <section className={`${panelPadClass} flex max-w-xl flex-col gap-4`} aria-labelledby="totp-heading">
@@ -156,84 +108,63 @@ export function TotpSettings() {
           Authenticator app
         </h2>
         <span className="rounded-md border border-control px-2 py-1 text-xs font-medium">
-          {totp ? "✓ 2FA Enabled" : "2FA Disabled"}
+          {enabled ? "✓ 2FA Enabled" : "2FA Disabled"}
         </span>
       </div>
 
-      {needPassword ? (
-        <form onSubmit={reauth} className="flex flex-col gap-3">
-          <div className={fieldClass}>
-            <label htmlFor="reauth-password" className={labelClass}>
-              Password
-            </label>
-            <input
-              id="reauth-password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={inputClass}
-            />
-          </div>
-          <button type="submit" disabled={pending || !password} className={primaryActionClass}>
-            Confirm password
-          </button>
-        </form>
-      ) : null}
-
-      {secret ? (
+      {setup ? (
         <form onSubmit={confirm} className="flex flex-col gap-3">
           <ol className="list-decimal space-y-1 pl-5 text-sm text-muted">
-            <li>In your authenticator app choose “Add account” → “Enter a setup key”.</li>
-            <li>Enter the key below (or open the link on a phone with the app).</li>
+            <li>Open Google Authenticator, Microsoft Authenticator or Authy and add an account.</li>
+            <li>Scan this QR code, or enter the setup key by hand.</li>
             <li>Type the 6-digit code the app shows.</li>
           </ol>
+          <QrCode value={setup.uri} label="QR code for your authenticator app" />
           <p className="text-sm">
             Setup key:{" "}
             <code className="num break-all rounded bg-surface-muted px-1.5 py-0.5 select-all">
-              {secret.secretKey}
+              {setup.secret}
             </code>
           </p>
-          <a
-            className="text-sm underline underline-offset-4"
-            href={secret.generateQrCodeUrl(user.email ?? "account", "Elevate")}
-          >
-            Open in authenticator app
-          </a>
-          <div className={fieldClass}>
-            <label htmlFor="enrol-code" className={labelClass}>
-              6-digit code
-            </label>
-            <input
-              id="enrol-code"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-              className={inputClass}
-            />
-          </div>
+          {codeField("enrol-code")}
           <div className="flex gap-2">
-            <button type="submit" disabled={pending} className={primaryActionClass}>
+            <button type="submit" disabled={pending || code.length !== 6} className={primaryActionClass}>
               {pending ? "Checking…" : "Turn on 2FA"}
             </button>
-            <button type="button" className={secondaryButtonClass} onClick={() => setSecret(null)}>
+            <button type="button" className={secondaryButtonClass} onClick={() => setSetup(null)}>
               Cancel
             </button>
           </div>
         </form>
-      ) : !needPassword ? (
-        totp ? (
-          <button type="button" onClick={disable} disabled={pending} className={`${secondaryButtonClass} self-start`}>
-            Disable 2FA
-          </button>
-        ) : (
-          <button type="button" onClick={start} disabled={pending} className={`${primaryActionClass} self-start`}>
-            Set up 2FA
-          </button>
-        )
-      ) : null}
+      ) : disabling ? (
+        <form onSubmit={disable} className="flex flex-col gap-3">
+          <p className="text-sm text-muted">Enter a current code to turn 2FA off.</p>
+          {codeField("disable-code")}
+          <div className="flex gap-2">
+            <button type="submit" disabled={pending || code.length !== 6} className={primaryActionClass}>
+              Disable 2FA
+            </button>
+            <button type="button" className={secondaryButtonClass} onClick={() => setDisabling(false)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : enabled ? (
+        <button
+          type="button"
+          onClick={() => {
+            setDisabling(true);
+            setCode("");
+          }}
+          className={`${secondaryButtonClass} self-start`}
+        >
+          Disable 2FA
+        </button>
+      ) : (
+        <button type="button" onClick={start} disabled={pending} className={`${primaryActionClass} self-start`}>
+          Set up 2FA
+        </button>
+      )}
 
       {error ? (
         <p role="alert" className={errorTextClass}>

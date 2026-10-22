@@ -3,8 +3,8 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword, type MultiFactorResolver } from "firebase/auth";
-import { MfaChallenge, resolverFromError } from "./mfa-challenge";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { MfaChallenge } from "./mfa-challenge";
 import { getClientAuth } from "@/lib/firebase/client";
 import { readableAuthError } from "./auth-errors";
 import { createServerSession } from "./session-client";
@@ -23,7 +23,7 @@ export function SignInForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [resolver, setResolver] = useState<MultiFactorResolver | null>(null);
+  const [challenge, setChallenge] = useState<{ tempToken: string; idToken: string } | null>(null);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,31 +35,32 @@ export function SignInForm() {
         email.trim(),
         password,
       );
-      await finish(await credential.user.getIdToken());
-    } catch (err) {
-      const mfa = resolverFromError(err);
-      if (mfa) {
-        setResolver(mfa);
+      const idToken = await credential.user.getIdToken();
+      const result = await createServerSession(idToken);
+      if (result) {
+        setChallenge({ tempToken: result.mfaTempToken, idToken });
       } else {
-        setError(readableAuthError(err));
+        finish();
       }
-      setPending(false);
+    } catch (err) {
+      setError(err instanceof Error && !("code" in err) ? err.message : readableAuthError(err));
     }
+    setPending(false);
   }
 
-  async function finish(idToken: string) {
-    await createServerSession(idToken);
+  function finish() {
     router.replace("/dashboard");
     router.refresh();
   }
 
-  if (resolver) {
+  if (challenge) {
     return (
       <MfaChallenge
-        resolver={resolver}
+        tempToken={challenge.tempToken}
+        idToken={challenge.idToken}
         onVerified={finish}
         onCancel={() => {
-          setResolver(null);
+          setChallenge(null);
           setPassword("");
         }}
       />

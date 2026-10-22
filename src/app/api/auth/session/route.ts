@@ -11,6 +11,7 @@ import {
   toSessionUser,
 } from "@/server/session";
 import { ensureUserRecord } from "@/server/users";
+import { isMfaEnabled, signTempToken } from "@/server/mfa";
 
 const bodySchema = z.object({ idToken: z.string().min(1) });
 
@@ -33,9 +34,15 @@ export async function POST(request: Request) {
         throw new ApiError(401, "Sign-in could not be verified. Please try again.");
       });
 
-    const sessionCookie = await createSessionCookie(idToken);
     const user = toSessionUser(decoded);
     await ensureUserRecord(user);
+
+    // 2FA enabled: no cookie until the TOTP code is verified.
+    if (await isMfaEnabled(user.uid)) {
+      return NextResponse.json({ mfaRequired: true, tempToken: signTempToken(user.uid) });
+    }
+
+    const sessionCookie = await createSessionCookie(idToken);
 
     const response = NextResponse.json({
       ok: true,
