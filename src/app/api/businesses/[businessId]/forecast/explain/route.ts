@@ -2,17 +2,27 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/server/auth";
 import { requireBusinessOwner } from "@/server/businesses";
 import { errorResponse } from "@/server/errors";
-import { explainForecast, forecastExplainSchema } from "@/server/ai/forecast";
+import { explainForecast } from "@/server/ai/forecast";
+import { HORIZONS, type Horizon } from "@/lib/forecast";
 import { z } from "zod";
-import type { Horizon } from "@/lib/forecast";
 
 type RouteContext = { params: Promise<{ businessId: string }> };
 
-const bodySchema = forecastExplainSchema.extend({
-  language: z.enum(["english", "urdu", "roman-urdu"]).default("english"),
+const bodySchema = z.object({
+  horizon: z.coerce.number().refine((n) => (HORIZONS as readonly number[]).includes(n), "Invalid horizon."),
+  language: z.enum(["english", "urdu", "roman-urdu", "en", "ur", "roman-ur"]).default("english"),
 });
 
-/** AI explanation of the deterministic forecast. Read-only. */
+const langMap: Record<string, "en" | "ur" | "roman-ur"> = {
+  english: "en",
+  en: "en",
+  urdu: "ur",
+  ur: "ur",
+  "roman-urdu": "roman-ur",
+  "roman-ur": "roman-ur",
+};
+
+/** AI explanation of the deterministic forecast with Firestore persistence. */
 export async function POST(request: Request, context: RouteContext) {
   try {
     const user = await requireUser();
@@ -23,7 +33,7 @@ export async function POST(request: Request, context: RouteContext) {
       uid: user.uid,
       business,
       horizon: body.horizon as Horizon,
-      language: body.language,
+      language: langMap[body.language] ?? "en",
     });
     return NextResponse.json(result);
   } catch (error) {
