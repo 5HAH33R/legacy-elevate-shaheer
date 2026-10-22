@@ -44,7 +44,11 @@ export function BusinessNav({ onNavigate }: { onNavigate?: () => void }) {
     },
     {
       label: "Ask",
-      items: [{ href: `${base}/assistant`, label: "AI assistant", Icon: AssistantIcon, exact: false }],
+      items: [
+        { href: `${base}/assistant`, label: "AI assistant", Icon: AssistantIcon, exact: false },
+        { href: `${base}/forecast`, label: "Forecast", Icon: OverviewIcon, exact: false },
+        { href: `${base}/marketing`, label: "Marketing", Icon: SalesIcon, exact: false },
+      ],
     },
   ];
 
