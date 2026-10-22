@@ -3,7 +3,8 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, type MultiFactorResolver } from "firebase/auth";
+import { MfaChallenge, resolverFromError } from "./mfa-challenge";
 import { getClientAuth } from "@/lib/firebase/client";
 import { readableAuthError } from "./auth-errors";
 import { createServerSession } from "./session-client";
@@ -22,6 +23,7 @@ export function SignInForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [resolver, setResolver] = useState<MultiFactorResolver | null>(null);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -33,14 +35,35 @@ export function SignInForm() {
         email.trim(),
         password,
       );
-      const idToken = await credential.user.getIdToken();
-      await createServerSession(idToken);
-      router.replace("/dashboard");
-      router.refresh();
+      await finish(await credential.user.getIdToken());
     } catch (err) {
-      setError(readableAuthError(err));
+      const mfa = resolverFromError(err);
+      if (mfa) {
+        setResolver(mfa);
+      } else {
+        setError(readableAuthError(err));
+      }
       setPending(false);
     }
+  }
+
+  async function finish(idToken: string) {
+    await createServerSession(idToken);
+    router.replace("/dashboard");
+    router.refresh();
+  }
+
+  if (resolver) {
+    return (
+      <MfaChallenge
+        resolver={resolver}
+        onVerified={finish}
+        onCancel={() => {
+          setResolver(null);
+          setPassword("");
+        }}
+      />
+    );
   }
 
   return (

@@ -50,6 +50,12 @@ export function BusinessNav({ onNavigate }: { onNavigate?: () => void }) {
         { href: `${base}/marketing`, label: "Marketing", Icon: SalesIcon, exact: false },
       ],
     },
+    {
+      label: "Account",
+      items: [
+        { href: `${base}/security`, label: "Security", Icon: ExpensesIcon, exact: false },
+      ],
+    },
   ];
 
   return (
