@@ -274,7 +274,8 @@ describe("invoice types (phase 1)", () => {
     const system = (providerCalls[0].body as unknown as { systemInstruction: { parts: { text: string }[] } })
       .systemInstruction.parts[0].text;
     expect(system).toMatch(/BUYER/);
-    expect(invoice.extractedData.lines[0]).toMatchObject({ matchedProductId: null, arithmeticValid: true });
+    expect(invoice.extractedData.lines[0]).toMatchObject({ matchedProductId: "prod-a1", arithmeticValid: true });
+    expect(invoice.extractedData.lines[1]).toMatchObject({ matchedProductId: null, arithmeticValid: true });
   });
 
   it("scans a sale with the receipt prompt and keeps customer, payment and discount", async () => {

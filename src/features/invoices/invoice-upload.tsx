@@ -22,6 +22,7 @@ export function InvoiceUpload({
   invoiceType?: "purchase" | "sale";
 }) {
   const router = useRouter();
+  const [selectedType, setSelectedType] = useState<"purchase" | "sale">(invoiceType);
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,31 +55,61 @@ export function InvoiceUpload({
     try {
       const body = new FormData();
       body.append("file", file);
-      body.append("invoiceType", invoiceType);
+      body.append("invoiceType", selectedType);
       const response = await fetch(`/api/businesses/${businessId}/invoices`, { method: "POST", body });
       const data = (await response.json().catch(() => null)) as { invoice?: { invoiceId: string }; error?: string } | null;
-      if (!response.ok || !data?.invoice) throw new Error(data?.error ?? "Could not read this invoice. Please try again.");
+      if (!response.ok || !data?.invoice) throw new Error(data?.error ?? "Could not read this document. Please try again.");
       router.push(`/dashboard/${businessId}/invoices/${data.invoice.invoiceId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not read this invoice. Please try again.");
+      setError(err instanceof Error ? err.message : "Could not read this document. Please try again.");
       setPending(false);
     }
   }
 
   return (
-    <section aria-labelledby="upload-heading" className={`${panelClass} flex flex-col gap-4 p-5 sm:p-6`}>
-      <div>
-        <h2 id="upload-heading" className="text-base font-semibold tracking-tight">Scan an invoice</h2>
-        <p className="mt-1 text-sm text-muted">
-          Take a clear photo of a supplier bill or upload its PDF. Elevate reads it with AI, then you check every
-          line before anything is saved.
-        </p>
+    <section aria-labelledby="upload-heading" className={`${panelClass} flex flex-col gap-4 p-5 sm:p-6 shadow-xs`}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 id="upload-heading" className="text-base font-semibold tracking-tight">
+            {selectedType === "purchase" ? "Scan a Supplier Bill" : "Scan a Customer Receipt"}
+          </h2>
+          <p className="mt-0.5 text-sm text-muted">
+            {selectedType === "purchase"
+              ? "Read items, unit costs, and add them to your stock upon review."
+              : "Read items sold, prices, and deduct them from your stock upon review."}
+          </p>
+        </div>
+
+        <div className="inline-flex rounded-xl border border-border bg-surface-muted p-1 text-xs font-semibold self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => setSelectedType("purchase")}
+            className={`rounded-lg px-3 py-1.5 transition-all ${
+              selectedType === "purchase"
+                ? "bg-surface text-foreground shadow-xs font-bold"
+                : "text-muted hover:text-foreground"
+            }`}
+          >
+            🛒 Purchase (Stock In)
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedType("sale")}
+            className={`rounded-lg px-3 py-1.5 transition-all ${
+              selectedType === "sale"
+                ? "bg-surface text-foreground shadow-xs font-bold"
+                : "text-muted hover:text-foreground"
+            }`}
+          >
+            💰 Sale (Stock Out)
+          </button>
+        </div>
       </div>
 
       {!configured ? (
         <p role="status" className="flex gap-2 rounded-lg border border-warning-border bg-warning-bg px-3 py-2.5 text-sm text-warning">
           <AlertIcon className="mt-0.5 shrink-0" />
-          Invoice reading needs the AI service, which is not configured yet. You can still record purchases by hand.
+          Invoice reading needs the AI service, which is not configured yet. You can still record transactions by hand.
         </p>
       ) : null}
 
@@ -130,7 +161,7 @@ export function InvoiceUpload({
           disabled={!file || pending || !configured}
           className={`${primaryActionClass} h-10 disabled:cursor-not-allowed disabled:opacity-60`}
         >
-          {pending ? "Reading invoice…" : "Read invoice"}
+          {pending ? "Reading document…" : selectedType === "purchase" ? "Read supplier bill" : "Read sales receipt"}
         </button>
         {pending ? (
           <p role="status" className="flex items-center gap-2 text-sm text-muted">

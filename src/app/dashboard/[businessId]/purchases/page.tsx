@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { requirePageBusiness } from "@/server/page-guards";
 import { listProductsForBusiness } from "@/server/products";
 import { listSuppliersForBusiness } from "@/server/suppliers";
@@ -30,6 +31,14 @@ async function PurchasesContent({ params, searchParams }: { params: Params; sear
       <PageHeader
         title="Purchases"
         description="Stock you buy from suppliers. A purchase adds to stock and sets each product's cost to the latest price you paid."
+        actions={
+          <Link
+            href={`/dashboard/${businessId}/invoices?type=purchase`}
+            className={`${secondaryButtonClass} inline-flex items-center gap-1.5 h-10 px-4`}
+          >
+            <span>📷</span> Scan supplier bill
+          </Link>
+        }
       />
       <PurchaseForm
         businessId={businessId}

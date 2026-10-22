@@ -13,6 +13,7 @@ import {
   rawExtractionSchema,
   resolveInvoiceType,
   resolvePaymentMethod,
+  suggestMatch,
   type ExtractedInvoice,
   type InvoiceMimeType,
   type InvoiceType,
@@ -24,6 +25,8 @@ import { consumeDailyAiUse } from "./ai/conversations";
 import { invoicePrompt } from "./ai/invoice-prompts";
 import { AiError, extractDocumentJson } from "./ai/provider";
 import { recordPurchaseForBusiness, type Purchase } from "./purchases";
+import { recordSaleForBusiness, type Sale } from "./sales";
+import { listProductsForBusiness } from "./products";
 import { createSupplierForBusiness } from "./suppliers";
 
 /**
@@ -31,9 +34,9 @@ import { createSupplierForBusiness } from "./suppliers";
  * the AI service to read it and is NOT stored (filePath stays null), so no
  * file can ever be public. What the AI read is saved as `extractedData` with
  * reviewStatus "needs_review"; it only becomes a business record (a purchase
- * that adds stock) when the owner confirms the reviewed lines. Each invoice
- * is a "purchase" (supplier bill) or a "sale" (customer receipt); documents
- * without the field are purchases. Callers MUST have run requireUser() →
+ * that adds stock or a sale that deducts stock) when the owner confirms the
+ * reviewed lines. Each invoice is a "purchase" (supplier bill) or a "sale"
+ * (customer receipt). Callers MUST have run requireUser() →
  * requireBusinessOwner(businessId) first.
  */
 export type InvoiceStatus = "needs_review" | "confirmed" | "discarded";
@@ -52,6 +55,7 @@ export type Invoice = {
   invoiceDate: string | null;
   supplierId: string | null;
   purchaseId: string | null;
+  saleId: string | null;
   model: string | null;
   createdAt: string;
   updatedAt: string;
@@ -60,8 +64,9 @@ export type Invoice = {
 
 const COLLECTION = "invoices";
 
-export const confirmInvoiceSchema = z
+export const confirmPurchaseInvoiceSchema = z
   .object({
+    invoiceType: z.literal("purchase").default("purchase").optional(),
     purchaseId: z.string().uuid("Invalid purchase id."),
     supplierId: z.string().trim().min(1).max(120).optional(),
     newSupplierName: z.string().trim().min(1, "Supplier name is required.").max(120).optional(),
@@ -85,6 +90,30 @@ export const confirmInvoiceSchema = z
   .refine((d) => Boolean(d.supplierId) !== Boolean(d.newSupplierName), {
     message: "Choose an existing supplier or enter a new supplier name.",
   });
+
+export const confirmSaleInvoiceSchema = z.object({
+  invoiceType: z.literal("sale"),
+  saleId: z.string().uuid("Invalid sale id."),
+  customerName: z.string().trim().max(120).optional(),
+  date: dateField,
+  items: z
+    .array(
+      z.object({
+        productId: z.string().trim().min(1, "Choose a product for every line you keep."),
+        quantity: z
+          .number()
+          .int("Quantity must be a whole number.")
+          .min(1, "Quantity must be at least 1.")
+          .max(1_000_000, "Quantity is too large."),
+        unit: z.string().trim().min(1).max(20).default("pcs"),
+        unitPrice: moneyField("Unit price"),
+      }),
+    )
+    .min(1, "Keep at least one line to record the sale.")
+    .max(MAX_INVOICE_LINES),
+});
+
+export const confirmInvoiceSchema = z.union([confirmPurchaseInvoiceSchema, confirmSaleInvoiceSchema]);
 export type ConfirmInvoiceInput = z.output<typeof confirmInvoiceSchema>;
 
 function str(value: unknown): string | null {
@@ -130,6 +159,7 @@ function serializeInvoice(id: string, data: DocumentData): Invoice {
     invoiceDate: str(data.invoiceDate),
     supplierId: str(data.supplierId),
     purchaseId: str(data.purchaseId),
+    saleId: str(data.saleId),
     model: str(data.model),
     createdAt: String(data.createdAt ?? ""),
     updatedAt: String(data.updatedAt ?? ""),
@@ -231,6 +261,26 @@ export async function scanInvoiceForBusiness(
     extracted.issues.push({ field: "lines", message: "The invoice was very long; some lines may be missing. Check against the paper copy." });
   }
 
+  // Auto-match lines to existing products
+  try {
+    const existingProducts = await listProductsForBusiness(business.businessId, db);
+    const productOptions = existingProducts.map((p) => ({ id: p.productId, name: p.name }));
+    for (const line of extracted.lines) {
+      if (line.description) {
+        const match = suggestMatch(line.description, productOptions);
+        if (match) {
+          line.matchedProductId = match.id;
+          line.isNewProduct = false;
+        } else {
+          line.matchedProductId = null;
+          line.isNewProduct = true;
+        }
+      }
+    }
+  } catch {
+    // If product list fails, lines remain unmatched without blocking invoice scan
+  }
+
   const now = new Date().toISOString();
   const ref = db.collection(COLLECTION).doc();
   const doc = {
@@ -246,6 +296,7 @@ export async function scanInvoiceForBusiness(
     invoiceDate: extracted.invoiceDate,
     supplierId: null,
     purchaseId: null,
+    saleId: null,
     createdSupplierId: null,
     model: answer.model,
     createdAt: now,
@@ -304,15 +355,13 @@ export async function discardInvoiceForBusiness(
 }
 
 /**
- * Turn the owner-reviewed lines into a purchase (stock goes up, product costs
- * follow the purchase, sourceDocumentId links back here). Idempotent on the
- * client purchaseId, and a new supplier is created at most once per invoice.
- * Sale invoices are confirmed by a later phase; they are refused here.
+ * Turn the owner-reviewed lines into a purchase (stock goes up) or sale (stock goes down).
+ * Idempotent on the client purchaseId / saleId.
  */
 export async function confirmInvoiceForBusiness(
   input: { business: Business; uid: string; invoiceId: string; data: ConfirmInvoiceInput },
   db: Firestore = getAdminDb(),
-): Promise<{ invoice: Invoice; purchase: Purchase }> {
+): Promise<{ invoice: Invoice; purchase?: Purchase; sale?: Sale }> {
   const { business, uid, invoiceId, data } = input;
   const businessId = business.businessId;
   const ref = db.collection(COLLECTION).doc(invoiceId);
@@ -322,11 +371,49 @@ export async function confirmInvoiceForBusiness(
     throw new ApiError(404, "Invoice not found.");
   }
   const invoice = serializeInvoice(snap.id, stored);
-  if (invoice.invoiceType === "sale") {
-    throw new ApiError(400, "Confirming a sales receipt is not available yet.");
-  }
   if (invoice.reviewStatus === "discarded") {
     throw new ApiError(409, "This invoice was discarded. Upload it again to record it.");
+  }
+
+  // Handle sales invoice confirmation
+  if (invoice.invoiceType === "sale") {
+    if (data.invoiceType !== "sale") {
+      throw new ApiError(400, "Expected a sale invoice confirmation.");
+    }
+    if (invoice.reviewStatus === "confirmed" && invoice.saleId !== data.saleId) {
+      throw new ApiError(409, "This invoice is already recorded as a sale.");
+    }
+    const { sale } = await recordSaleForBusiness(
+      businessId,
+      {
+        saleId: data.saleId,
+        date: data.date,
+        items: data.items.map((it) => ({
+          productId: it.productId,
+          quantity: it.quantity,
+          unitPrice: it.unitPrice,
+        })),
+      },
+      uid,
+      business.timezone,
+      db,
+    );
+    const now = new Date().toISOString();
+    const update = {
+      reviewStatus: "confirmed" as const,
+      saleId: sale.saleId,
+      invoiceDate: data.date,
+      confirmedAt: invoice.confirmedAt ?? now,
+      confirmedBy: uid,
+      updatedAt: now,
+    };
+    await ref.update(update);
+    return { invoice: serializeInvoice(invoiceId, { ...stored, ...update }), sale };
+  }
+
+  // Otherwise, handle purchase invoice confirmation
+  if (data.invoiceType === "sale") {
+    throw new ApiError(400, "Expected a purchase invoice confirmation.");
   }
   if (invoice.reviewStatus === "confirmed" && invoice.purchaseId !== data.purchaseId) {
     throw new ApiError(409, "This invoice is already recorded as a purchase.");

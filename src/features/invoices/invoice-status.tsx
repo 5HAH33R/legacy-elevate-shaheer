@@ -22,3 +22,19 @@ export function InvoiceStatusPill({ status }: { status: "needs_review" | "confir
     </span>
   );
 }
+
+/** Invoice type badge distinguishing Purchase bills from Sales receipts. */
+export function InvoiceTypeBadge({ type }: { type?: "purchase" | "sale" }) {
+  if (type === "sale") {
+    return (
+      <span className="inline-flex flex-none items-center gap-1 rounded-full border border-sky-500/20 bg-sky-500/10 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-sky-400">
+        💰 Sale
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex flex-none items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-primary">
+      🛒 Purchase
+    </span>
+  );
+}

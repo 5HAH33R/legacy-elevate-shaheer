@@ -11,7 +11,7 @@ import { formatMoney } from "@/lib/money";
 import { AlertIcon, CheckIcon, InfoIcon } from "@/components/icons";
 import { PageHeader, PageSkeleton } from "@/features/workspace/page-header";
 import { InvoiceReviewForm } from "@/features/invoices/invoice-review-form";
-import { InvoiceStatusPill } from "@/features/invoices/invoice-status";
+import { InvoiceStatusPill, InvoiceTypeBadge } from "@/features/invoices/invoice-status";
 import { panelClass, panelTitleClass } from "@/features/auth/ui";
 
 export const metadata: Metadata = { title: "Review invoice — Elevate" };
@@ -30,6 +30,7 @@ async function InvoiceContent({ params }: { params: Params }) {
     throw error;
   }
   const x = invoice.extractedData;
+  const isSale = (invoice.invoiceType ?? x.invoiceType) === "sale";
   const m = (v: number | null) => (v === null ? <span className="text-muted">—</span> : formatMoney(v, business.currency));
   const base = `/dashboard/${businessId}`;
 
@@ -38,25 +39,32 @@ async function InvoiceContent({ params }: { params: Params }) {
     ? await Promise.all([listProductsForBusiness(businessId), listSuppliersForBusiness(businessId)])
     : [[], []];
 
+  const displayName = isSale
+    ? x.customerName ?? "Customer Receipt"
+    : x.supplierName ?? "Supplier Invoice";
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         eyebrow={
           <Link href={`${base}/invoices`} className="hover:text-foreground hover:underline">
-            ← Invoices
+            ← Invoices & Receipts
           </Link>
         }
         title={
           <span className="flex flex-wrap items-center gap-3">
-            {reviewing ? "Review invoice" : x.supplierName ?? "Invoice"}
+            {reviewing ? (isSale ? "Review sales receipt" : "Review purchase invoice") : displayName}
+            <InvoiceTypeBadge type={isSale ? "sale" : "purchase"} />
             <InvoiceStatusPill status={invoice.reviewStatus} />
           </span>
         }
         description={`${invoice.fileName} · scanned ${invoice.createdAt.slice(0, 10)}. ${
           reviewing
-            ? "Check what was read against the paper copy. Nothing is recorded until you confirm."
+            ? "Check what was read against the paper copy or receipt. Nothing is recorded until you confirm."
             : invoice.reviewStatus === "confirmed"
-              ? "Recorded as a purchase."
+              ? isSale
+                ? "Recorded as a sale. Stock was deducted."
+                : "Recorded as a purchase. Stock was added."
               : "Discarded. Nothing was recorded."
         }`}
       />
@@ -64,14 +72,29 @@ async function InvoiceContent({ params }: { params: Params }) {
       <section aria-labelledby="read-heading" className={`${panelClass} p-5 sm:p-6`}>
         <h2 id="read-heading" className={panelTitleClass}>What the AI read</h2>
         <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 text-sm lg:grid-cols-6">
-          <div className="col-span-2">
-            <dt className="text-xs text-muted">Supplier</dt>
-            <dd className="mt-0.5 font-medium">{x.supplierName ?? <span className="text-muted">Not found</span>}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-muted">Invoice no.</dt>
-            <dd className="mt-0.5">{x.invoiceNumber ?? <span className="text-muted">—</span>}</dd>
-          </div>
+          {isSale ? (
+            <>
+              <div className="col-span-2">
+                <dt className="text-xs text-muted">Customer</dt>
+                <dd className="mt-0.5 font-medium">{x.customerName ?? <span className="text-muted">Walk-in Customer</span>}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted">Payment</dt>
+                <dd className="mt-0.5 capitalize">{x.paymentMethod ?? "cash"}</dd>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="col-span-2">
+                <dt className="text-xs text-muted">Supplier</dt>
+                <dd className="mt-0.5 font-medium">{x.supplierName ?? <span className="text-muted">Not found</span>}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted">Invoice no.</dt>
+                <dd className="mt-0.5">{x.invoiceNumber ?? <span className="text-muted">—</span>}</dd>
+              </div>
+            </>
+          )}
           <div>
             <dt className="text-xs text-muted">Date</dt>
             <dd className="num mt-0.5">{x.invoiceDate ?? <span className="text-muted">—</span>}</dd>
@@ -98,7 +121,7 @@ async function InvoiceContent({ params }: { params: Params }) {
         ) : (
           <p className="mt-5 flex items-center gap-2 text-sm text-muted">
             <CheckIcon className="shrink-0 text-success" />
-            Every line adds up and nothing was flagged. Still check it against the paper copy.
+            Every line adds up and nothing was flagged. Still check it against the physical document.
           </p>
         )}
         <p className="mt-4 flex items-start gap-2 text-xs text-muted">
@@ -121,14 +144,20 @@ async function InvoiceContent({ params }: { params: Params }) {
         <section className={`${panelClass} flex flex-wrap items-center justify-between gap-3 p-5 sm:p-6`}>
           <p className="flex items-center gap-2 text-sm">
             <CheckIcon className="shrink-0 text-success" />
-            Recorded as a purchase on {invoice.invoiceDate}
+            {isSale ? "Recorded as a sale" : "Recorded as a purchase"} on {invoice.invoiceDate}
             {invoice.confirmedAt ? <span className="text-muted"> (confirmed {invoice.confirmedAt.slice(0, 10)})</span> : null}.
           </p>
           <div className="flex gap-4 text-sm font-medium">
-            <Link href={`${base}/purchases`} className="hover:underline">View purchases</Link>
-            {invoice.supplierId ? (
-              <Link href={`${base}/suppliers/${invoice.supplierId}`} className="hover:underline">Supplier</Link>
-            ) : null}
+            {isSale ? (
+              <Link href={`${base}/sales`} className="hover:underline">View sales</Link>
+            ) : (
+              <>
+                <Link href={`${base}/purchases`} className="hover:underline">View purchases</Link>
+                {invoice.supplierId ? (
+                  <Link href={`${base}/suppliers/${invoice.supplierId}`} className="hover:underline">Supplier</Link>
+                ) : null}
+              </>
+            )}
           </div>
         </section>
       ) : null}

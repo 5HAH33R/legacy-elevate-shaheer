@@ -1,12 +1,13 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { requirePageBusiness } from "@/server/page-guards";
 import { listProductsForBusiness } from "@/server/products";
 import { listSalesForBusiness, type Sale } from "@/server/sales";
 import { formatMoney } from "@/lib/money";
 import { PageHeader, PageSkeleton } from "@/features/workspace/page-header";
 import { SaleForm } from "@/features/sales/sale-form";
-import { emptyStateClass, panelClass, panelTitleClass } from "@/features/auth/ui";
+import { emptyStateClass, panelClass, panelTitleClass, secondaryButtonClass } from "@/features/auth/ui";
 
 export const metadata: Metadata = { title: "Sales — Elevate" };
 
@@ -66,6 +67,14 @@ async function SalesContent({
       <PageHeader
         title="Sales"
         description="Recording a sale takes the items out of stock straight away. Totals are calculated by Elevate, not typed in."
+        actions={
+          <Link
+            href={`/dashboard/${businessId}/invoices?type=sale`}
+            className={`${secondaryButtonClass} inline-flex items-center gap-1.5 h-10 px-4`}
+          >
+            <span>📷</span> Scan sales receipt
+          </Link>
+        }
       />
 
       <SaleForm
